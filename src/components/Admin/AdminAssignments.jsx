@@ -58,7 +58,7 @@ import {
     updateAssignmentByAdmin
 } from '../../services/assignmentService';
 import EditAssignment from './EditAssignment';
-import ScheduledAssignments from './ScheduledAssignmentsEnhanced';
+import ScheduledAssignments from './ScheduledAssignmentsSimple';
 
 // Custom animated components
 const AnimatedCard = motion(Card);

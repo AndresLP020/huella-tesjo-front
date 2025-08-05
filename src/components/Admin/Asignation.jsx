@@ -98,7 +98,7 @@ const SectionHeader = styled(Typography)(({ theme }) => ({
     }
 }));
 
-const UserChip = styled(Chip)(({ theme }) => ({
+const UserChip = styled(Chip)(() => ({
     '& .MuiChip-avatar': {
         width: 28,
         height: 28
@@ -107,8 +107,9 @@ const UserChip = styled(Chip)(({ theme }) => ({
 
 const AnimatedButton = motion(Button);
 
-export default function Asignation({ open, onClose, users }) {
-    const { verifyToken } = useContext(AuthContext);
+export default function Asignation({ open, onClose, users = [] }) {
+    const { verifyToken } = useContext(AuthContext) || {};
+    
     const [form, setForm] = useState({
         title: '',
         description: '',
@@ -323,10 +324,12 @@ export default function Asignation({ open, onClose, users }) {
         }
     };
 
-    const isFieldValid = (fieldName) => {
-        if (!touched[fieldName]) return true;
-        return !!form[fieldName];
-    };
+    // Verificaciones de seguridad después de todos los hooks
+    if (!open) return null;
+    if (!verifyToken) {
+        console.error('AuthContext not available in Asignation component');
+        return null;
+    }
 
     return (
         <StyledDialog 
