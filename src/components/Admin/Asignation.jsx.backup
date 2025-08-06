@@ -13,8 +13,25 @@ import {
     Box,
     Typography,
     Switch,
-    FormControlLabel,
-    Chip,
+    For            // Verificar que el token sea válido
+            // console.log('🔍 Verificando estado de autenticación...');
+            // const authCheckResponse = await fetch('http://localhost:3001/api/assignments/auth-status', {
+            //     headers: {
+            //         'Authorization': `Bearer ${token}`
+            //     }
+            // });
+            
+            // const authCheck = await authCheckResponse.json();
+            // console.log('Estado de autenticación:', authCheck);
+            
+            // if (!authCheck.success) {
+            //     throw new Error(authCheck.message || 'Token de autenticación inválido');
+            // }
+
+            // Intentar verificar token usando el contexto
+            if (verifyToken) {
+                await verifyToken();
+            } Chip,
     IconButton,
     Alert,
     CircularProgress,
@@ -295,8 +312,7 @@ export default function Asignation({ open, onClose, users = [] }) {
             console.log('Estado de autenticación:', authCheck);
             
             if (!authCheck.success) {
-                console.warn('Verificación de auth-status falló, continuando con la creación...');
-                // throw new Error(authCheck.message || 'Token de autenticación inválido');
+                throw new Error(authCheck.message || 'Token de autenticación inválido');
             }
 
             // Intentar verificar token usando el contexto

@@ -42,7 +42,6 @@ import {
     FilterList,
     Refresh,
     Visibility,
-    Done,
     Close,
     CalendarToday,
     ExpandMore,
@@ -52,7 +51,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
-import { getTeacherAssignmentStats, getTeacherAssignments, markAssignmentCompleted, getAllTeachersStats } from '../../services/assignmentService';
+import { getTeacherAssignmentStats, getTeacherAssignments, getAllTeachersStats } from '../../services/assignmentService';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -83,7 +82,6 @@ const TeacherAssignments = () => {
     // Estados para diálogos
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [showDetailDialog, setShowDetailDialog] = useState(false);
-    const [actionLoading, setActionLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Load stats on mount
@@ -154,29 +152,6 @@ const TeacherAssignments = () => {
         loadAssignments();
         loadStats();
         loadAllTeachersStats();
-    };
-
-    const handleCompleteAssignment = async (assignmentId) => {
-        try {
-            setActionLoading(true);
-            setError('');
-            
-            const response = await markAssignmentCompleted(assignmentId);
-            
-            if (response.success) {
-                await loadAssignments();
-                await loadStats();
-                setShowDetailDialog(false);
-            } else {
-                throw new Error(response.error || 'Unknown error');
-            }
-        } catch (error) {
-            console.error('Error completing assignment:', error);
-            const errorMessage = error.response?.data?.error || error.message || 'Error marking as completed';
-            setError(errorMessage);
-        } finally {
-            setActionLoading(false);
-        }
     };
 
     const getStatusColor = (status, dueDate, closeDate) => {
@@ -599,9 +574,6 @@ const TeacherAssignments = () => {
                             {assignments.map((assignment) => {
                                 const isOverdue = assignment.status === 'pending' && new Date(assignment.dueDate) < new Date();
                                 const status = isOverdue ? 'vencido' : assignment.status;
-                                const now = new Date();
-                                const closeDate = new Date(assignment.closeDate);
-                                const isClosed = now > closeDate;
                                 
                                 return (
                                     <TableRow 
@@ -665,19 +637,6 @@ const TeacherAssignments = () => {
                                                         <Visibility />
                                                     </IconButton>
                                                 </Tooltip>
-                                                
-                                                {assignment.status === 'pending' && !isClosed && (
-                                                    <Tooltip title={isOverdue ? "Entregar Tarde" : "Marcar como Completado"}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleCompleteAssignment(assignment._id)}
-                                                            color={isOverdue ? "warning" : "success"}
-                                                            disabled={actionLoading}
-                                                        >
-                                                            <Done />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
                                             </Box>
                                         </TableCell>
                                     </TableRow>
@@ -969,45 +928,6 @@ const TeacherAssignments = () => {
                             p: 2,
                             borderTop: `1px solid ${theme.palette.divider}`
                         }}>
-                            {selectedAssignment.status === 'pending' && (
-                                (() => {
-                                    const now = new Date();
-                                    const dueDate = new Date(selectedAssignment.dueDate);
-                                    const closeDate = new Date(selectedAssignment.closeDate);
-                                    const isClosed = now > closeDate;
-                                    const isOverdue = now > dueDate && !isClosed;
-                                    
-                                    if (isClosed) {
-                                        return null;
-                                    }
-                                    
-                                    return (
-                                        <AnimatedButton
-                                            color={isOverdue ? "warning" : "success"}
-                                            variant="contained"
-                                            startIcon={<Done />}
-                                            onClick={() => handleCompleteAssignment(selectedAssignment._id)}
-                                            disabled={actionLoading}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            sx={{
-                                                background: isOverdue ? 
-                                                    `linear-gradient(45deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.dark} 100%)` :
-                                                    `linear-gradient(45deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
-                                                boxShadow: theme.shadows[2],
-                                                '&:hover': {
-                                                    boxShadow: theme.shadows[4],
-                                                }
-                                            }}
-                                        >
-                                            {actionLoading 
-                                                ? 'Completando...' 
-                                                : (isOverdue ? 'Entregar Tarde' : 'Marcar como Completado')
-                                            }
-                                        </AnimatedButton>
-                                    );
-                                })()
-                            )}
                             <AnimatedButton 
                                 onClick={() => setShowDetailDialog(false)}
                                 variant="outlined"

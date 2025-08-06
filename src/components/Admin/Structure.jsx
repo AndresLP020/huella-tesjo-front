@@ -4,7 +4,6 @@ import { Edit, Delete, Menu as MenuIcon, Close as CloseIcon, PersonAdd, Refresh,
 import Drawer from '@mui/material/Drawer';
 import { styled, keyframes } from '@mui/material/styles';
 import Asignation from './Asignation';
-import Stadistics from './Stadistics';
 import AdminAssignments from './AdminAssignments';
 
 // Animaciones personalizadas
@@ -102,11 +101,8 @@ export default function Structure() {
     const [reporteDrawerOpen, setReporteDrawerOpen] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [asignationOpen, setAsignationOpen] = useState(false);
-    const [stadisticsOpen, setStadisticsOpen] = useState(false);
     const [adminAssignmentsOpen, setAdminAssignmentsOpen] = useState(false);
     const [teacherStats, setTeacherStats] = useState({});
-    const [loadingStats, setLoadingStats] = useState(true);
-    const [statsError, setStatsError] = useState(null);
 
     // Función optimizada para obtener usuarios con cache
     const fetchUsers = useCallback(async (force = false) => {
@@ -147,9 +143,6 @@ export default function Structure() {
     const fetchTeacherStats = useCallback(async () => {
         console.log('Iniciando fetchTeacherStats');
         try {
-            setLoadingStats(true);
-            setStatsError(null);
-            
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('No hay token de autenticación');
@@ -195,12 +188,8 @@ export default function Structure() {
             
             console.log('StatsMap procesado:', statsMap);
             setTeacherStats(statsMap);
-            setStatsError(null);
         } catch (error) {
             console.error('Error al obtener estadísticas:', error);
-            setStatsError(error.message);
-        } finally {
-            setLoadingStats(false);
         }
     }, []);
 
@@ -325,15 +314,6 @@ export default function Structure() {
 
     const handleCloseAsignation = useCallback(() => {
         setAsignationOpen(false);
-    }, []);
-
-    const handleOpenStadistics = useCallback(() => {
-        setStadisticsOpen(true);
-        setMobileDrawerOpen(false);
-    }, []);
-
-    const handleCloseStadistics = useCallback(() => {
-        setStadisticsOpen(false);
     }, []);
 
     const handleOpenAdminAssignments = useCallback(() => {
@@ -830,12 +810,6 @@ export default function Structure() {
                 open={asignationOpen}
                 onClose={handleCloseAsignation}
                 users={users}
-            />
-
-            {/* Diálogo de Estadísticas */}
-            <Stadistics
-                open={stadisticsOpen}
-                onClose={handleCloseStadistics}
             />
 
             {/* Diálogo de Administración de Asignaciones */}
