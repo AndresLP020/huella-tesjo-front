@@ -429,27 +429,6 @@ export default function Structure() {
                             >
                                 Panel de Administración
                             </Typography>
-                            <IconButton
-                                color="inherit"
-                                onClick={handleRefresh}
-                                disabled={refreshing}
-                                sx={{ 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                                    backdropFilter: 'blur(10px)',
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                                        transform: 'scale(1.1)',
-                                    },
-                                }}
-                            >
-                                <Refresh sx={{ 
-                                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                                    '@keyframes spin': {
-                                        '0%': { transform: 'rotate(0deg)' },
-                                        '100%': { transform: 'rotate(360deg)' },
-                                    },
-                                }} />
-                            </IconButton>
                         </Box>
                         <Typography 
                             variant="subtitle1" 
@@ -493,7 +472,7 @@ export default function Structure() {
                                         <TableCell align="center" sx={{ fontWeight: 'bold', color: 'primary.main' }}>Completadas</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 'bold', color: 'primary.main' }}>Pendientes</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 'bold', color: 'primary.main' }}>Vencidas</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: 'primary.main' }}>Acciones</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 'bold', color: 'primary.main' }}>ScoreCard</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -575,60 +554,7 @@ export default function Structure() {
                                                         </TableCell>
                                                         {renderStats(user)}
                                                         <TableCell>
-                                                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                                                <IconButton 
-                                                                    onClick={() => updateTeacherStats(user.numeroControl)}
-                                                                    sx={{ 
-                                                                        color: 'info.main',
-                                                                        '&:hover': { 
-                                                                            backgroundColor: 'rgba(2, 136, 209, 0.1)',
-                                                                            transform: 'scale(1.1)',
-                                                                        },
-                                                                        transition: 'all 0.2s ease',
-                                                                    }}
-                                                                >
-                                                                    <Refresh />
-                                                                </IconButton>
-                                                                <IconButton 
-                                                                    onClick={() => handleSelectStudent(user)}
-                                                                    sx={{ 
-                                                                        color: 'primary.main',
-                                                                        '&:hover': { 
-                                                                            backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                                                                            transform: 'scale(1.1)',
-                                                                        },
-                                                                        transition: 'all 0.2s ease',
-                                                                    }}
-                                                                >
-                                                                    <Visibility />
-                                                                </IconButton>
-                                                                <IconButton 
-                                                                    onClick={() => handleOpenDialog(user)}
-                                                                    sx={{ 
-                                                                        color: 'warning.main',
-                                                                        '&:hover': { 
-                                                                            backgroundColor: 'rgba(237, 108, 2, 0.1)',
-                                                                            transform: 'scale(1.1)',
-                                                                        },
-                                                                        transition: 'all 0.2s ease',
-                                                                    }}
-                                                                >
-                                                                    <Edit />
-                                                                </IconButton>
-                                                                <IconButton 
-                                                                    onClick={() => handleDelete(user._id)} 
-                                                                    sx={{ 
-                                                                        color: 'error.main',
-                                                                        '&:hover': { 
-                                                                            backgroundColor: 'rgba(211, 47, 47, 0.1)',
-                                                                            transform: 'scale(1.1)',
-                                                                        },
-                                                                        transition: 'all 0.2s ease',
-                                                                    }}
-                                                                >
-                                                                    <Delete />
-                                                                </IconButton>
-                                                            </Box>
+
                                                         </TableCell>
                                                     </AnimatedTableRow>
                                                 </Fade>

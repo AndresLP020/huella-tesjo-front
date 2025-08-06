@@ -31,11 +31,7 @@ import {
     TableCell,
     TableHead,
     TableRow,
-    TableContainer,
-    FormControl,
-    InputLabel,
-    Select,
-    InputAdornment
+    TableContainer
 } from '@mui/material';
 import {
     Assignment as AssignmentIcon,
@@ -51,9 +47,7 @@ import {
     ExpandMore,
     ExpandLess,
     FileDownload,
-    Person,
-    AccessTime,
-    Cancel
+    Person
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
@@ -61,7 +55,7 @@ import { getTeacherAssignmentStats, getTeacherAssignments, getAllTeachersStats }
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Componentes animados personalizados
+// Custom animated components
 const AnimatedCard = motion(Card);
 const AnimatedBadge = motion(Badge);
 const AnimatedButton = motion(Button);
@@ -79,6 +73,7 @@ const TeacherAssignments = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('-createdAt');
+    const [expandedFilters, setExpandedFilters] = useState(false);
     
     // Estados para paginación
     const [page, setPage] = useState(1);
@@ -89,16 +84,15 @@ const TeacherAssignments = () => {
     const [showDetailDialog, setShowDetailDialog] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Cargar estadísticas al montar
+    // Load stats on mount
     useEffect(() => {
         loadStats();
         loadAllTeachersStats();
     }, []);
 
-    // Cargar asignaciones cuando cambien los filtros
+    // Load assignments when filters change
     useEffect(() => {
         loadAssignments();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter, searchTerm, sortBy, page]);
 
     const loadStats = async () => {
@@ -108,7 +102,7 @@ const TeacherAssignments = () => {
                 setStats(response.stats);
             }
         } catch (error) {
-            console.error('Error cargando estadísticas:', error);
+            console.error('Error loading stats:', error);
         }
     };
 
@@ -131,11 +125,11 @@ const TeacherAssignments = () => {
                 setAssignments(response.assignments || []);
                 setTotalPages(response.pagination?.totalPages || 1);
             } else {
-                setError('La respuesta del servidor no fue exitosa');
+                setError('Server response was not successful');
             }
         } catch (error) {
-            console.error('Error cargando asignaciones:', error);
-            setError('Error cargando asignaciones: ' + (error.message || 'Error desconocido'));
+            console.error('Error loading assignments:', error);
+            setError('Error loading assignments: ' + (error.message || 'Unknown error'));
         } finally {
             setLoading(false);
             setIsRefreshing(false);
@@ -149,7 +143,7 @@ const TeacherAssignments = () => {
                 setAllTeachersStats(response.stats);
             }
         } catch (error) {
-            console.error('Error cargando estadísticas de todos los docentes:', error);
+            console.error('Error loading all teachers stats:', error);
         }
     };
 
@@ -179,8 +173,6 @@ const TeacherAssignments = () => {
         // Lógica original si no hay estado específico del admin
         const { status, dueDate, closeDate } = assignment;
         if (status === 'completed') return 'success';
-        if (status === 'completed-late') return 'warning';
-        if (status === 'not-delivered') return 'error';
         
         const now = new Date();
         const due = new Date(dueDate);
@@ -215,8 +207,6 @@ const TeacherAssignments = () => {
         // Lógica original si no hay estado específico del admin
         const { status, dueDate, closeDate } = assignment;
         if (status === 'completed') return 'Completado';
-        if (status === 'completed-late') return 'Entregado con Retraso';
-        if (status === 'not-delivered') return 'No Entregado';
         if (status === 'pending') {
             const now = new Date();
             const due = new Date(dueDate);
@@ -249,7 +239,7 @@ const TeacherAssignments = () => {
                 day: 'numeric'
             });
         } catch (error) {
-            console.error('Error formateando fecha:', error);
+            console.error('Error formatting date:', error);
             return 'Fecha inválida';
         }
     };
@@ -267,7 +257,7 @@ const TeacherAssignments = () => {
                 minute: '2-digit'
             });
         } catch (error) {
-            console.error('Error formateando fecha con hora:', error);
+            console.error('Error formatting date with time:', error);
             return 'Fecha inválida';
         }
     };
@@ -296,12 +286,34 @@ const TeacherAssignments = () => {
                 locale: es 
             });
         } catch (error) {
-            console.error('Error calculando tiempo restante:', error);
+            console.error('Error calculating time remaining:', error);
             return 'Error de fecha';
         }
     };
 
-    // Variantes de animación
+    // Animation variants
+    const cardVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: {
+                duration: 0.4,
+                ease: "easeOut"
+            }
+        }
+    };
+
+    const statsVariants = {
+        hover: {
+            y: -5,
+            transition: {
+                duration: 0.2,
+                ease: "easeOut"
+            }
+        }
+    };
+
     if (loading && assignments.length === 0) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -379,7 +391,7 @@ const TeacherAssignments = () => {
                 </TableContainer>
             </Paper>
 
-            {/* Tarjetas de estadísticas con animaciones */}
+            {/* Stats cards with animations */}
             {stats && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                     {[
@@ -393,33 +405,26 @@ const TeacherAssignments = () => {
                         { 
                             icon: <Schedule sx={{ fontSize: 40 }} />, 
                             value: stats.pending, 
-                            label: 'Pendientes',
-                            color: 'info',
+                            label: 'Pendiente',
+                            color: 'warning',
                             filterValue: 'pending'
                         },
                         { 
                             icon: <CheckCircle sx={{ fontSize: 40 }} />, 
                             value: stats.completed, 
-                            label: 'Entregadas',
+                            label: 'Completado',
                             color: 'success',
                             filterValue: 'completed'
                         },
                         { 
-                            icon: <AccessTime sx={{ fontSize: 40 }} />, 
-                            value: stats.completedLate || 0, 
-                            label: 'Entregadas con Retraso',
-                            color: 'warning',
-                            filterValue: 'completed-late'
-                        },
-                        { 
-                            icon: <Cancel sx={{ fontSize: 40 }} />, 
-                            value: stats.notDelivered || 0, 
-                            label: 'No Entregadas',
+                            icon: <Warning sx={{ fontSize: 40 }} />, 
+                            value: stats.overdue, 
+                            label: 'Vencido',
                             color: 'error',
-                            filterValue: 'not-delivered'
+                            filterValue: 'vencido'
                         }
                     ].map((stat, index) => (
-                        <Grid item xs={12} sm={6} md={2.4} key={index}>
+                        <Grid item xs={6} sm={3} key={index}>
                             <motion.div
                                 initial="hidden"
                                 animate="visible"
@@ -519,7 +524,7 @@ const TeacherAssignments = () => {
                 </Grid>
             )}
 
-            {/* Mensaje de error con animación */}
+            {/* Error message with animation */}
             <AnimatePresence>
                 {error && (
                     <motion.div
@@ -540,73 +545,7 @@ const TeacherAssignments = () => {
                 )}
             </AnimatePresence>
 
-            {/* Controles de filtros */}
-            <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-                <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={3}>
-                        <TextField
-                            fullWidth
-                            size="small"
-                            placeholder="Buscar asignaciones..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Search color="action" />
-                                    </InputAdornment>
-                                ),
-                            }}
-                        />
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Estado</InputLabel>
-                            <Select
-                                value={statusFilter}
-                                label="Estado"
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <MenuItem value="all">Todos</MenuItem>
-                                <MenuItem value="pending">Pendientes</MenuItem>
-                                <MenuItem value="completed">Entregadas</MenuItem>
-                                <MenuItem value="completed-late">Entregadas con Retraso</MenuItem>
-                                <MenuItem value="not-delivered">No Entregadas</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Ordenar por</InputLabel>
-                            <Select
-                                value={sortBy}
-                                label="Ordenar por"
-                                onChange={(e) => setSortBy(e.target.value)}
-                            >
-                                <MenuItem value="-createdAt">Más recientes</MenuItem>
-                                <MenuItem value="createdAt">Más antiguas</MenuItem>
-                                <MenuItem value="dueDate">Fecha de entrega</MenuItem>
-                                <MenuItem value="-dueDate">Fecha de entrega (desc)</MenuItem>
-                                <MenuItem value="title">Título A-Z</MenuItem>
-                                <MenuItem value="-title">Título Z-A</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                            startIcon={<Refresh />}
-                        >
-                            Actualizar
-                        </Button>
-                    </Grid>
-                </Grid>
-            </Paper>
-
-            {/* Tabla de asignaciones */}
+            {/* Assignments table */}
             {assignments.length === 0 ? (
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -668,6 +607,7 @@ const TeacherAssignments = () => {
                         <TableBody>
                             {assignments.map((assignment) => {
                                 const isOverdue = assignment.status === 'pending' && new Date(assignment.dueDate) < new Date();
+                                const status = isOverdue ? 'vencido' : assignment.status;
                                 
                                 return (
                                     <TableRow 
@@ -741,7 +681,7 @@ const TeacherAssignments = () => {
                 </Paper>
             )}
 
-            {/* Paginación con animación */}
+            {/* Pagination with animation */}
             {totalPages > 1 && (
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -807,7 +747,7 @@ const TeacherAssignments = () => {
                 </motion.div>
             )}
 
-            {/* Diálogo de detalles de asignación con animaciones */}
+            {/* Assignment detail dialog with animations */}
             <Dialog
                 open={showDetailDialog}
                 onClose={() => setShowDetailDialog(false)}

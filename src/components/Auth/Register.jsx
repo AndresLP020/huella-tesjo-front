@@ -162,9 +162,9 @@ export default function Register() {
   // Verificación de email al perder el foco
   const handleEmailBlur = async () => {
     if (formData.email.trim() !== '') {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@tesjo\.edu\.mx$/;
       if (!emailRegex.test(formData.email)) {
-        setError('Por favor, introduce un correo Gmail válido (ejemplo: usuario@gmail.com)');
+        setError('Por favor, introduce un correo válido (ejemplo: usuario@tesjo.edu.mx)');
         return;
       }
       try {
@@ -181,9 +181,9 @@ export default function Register() {
   // Verificación de número de control al perder el foco
   const handleNumeroControlBlur = async () => {
     if (formData.numeroControl.trim() !== '') {
-      const numeroControlRegex = /^[0-9]{8,10}$/;
+      const numeroControlRegex = /^[0-9A-Z]{10,15}$/; 
       if (!numeroControlRegex.test(formData.numeroControl)) {
-        setError('El número de control debe tener entre 8 y 10 dígitos');
+        setError('El número de empleado debe tener entre 10-15 dígitos');
         return;
       }
       try {
@@ -208,9 +208,9 @@ export default function Register() {
   const handleNumeroControlChange = (e) => {
     const { value } = e.target;
     // Solo permitir números
-    const numeroControl = value.replace(/[^0-9]/g, '');
-    if (numeroControl.length <= 10) {
-      setFormData({
+    const numeroControl = value.replace(/[^0-9A-Z]/g, '');
+    if (numeroControl.length <= 15) {
+      setFormData({ 
         ...formData,
         numeroControl
       });
@@ -348,7 +348,7 @@ export default function Register() {
             </Box>
             
             <AnimatedTextField
-              label="Número de Control"
+              label="Número de Empleado"
               name="numeroControl"
               value={formData.numeroControl}
               onChange={handleNumeroControlChange}
@@ -356,10 +356,10 @@ export default function Register() {
               required
               icon={<Badge />}
               inputProps={{
-                maxLength: 10,
-                pattern: '[0-9]*'
+                maxLength: 15,
+                pattern: '[^0-9A-Z]*'
               }}
-              helperText="Ingresa tu número de control (8-10 dígitos)"
+              helperText="Ingresa tu Empleado (10-15 caracteres)"
             />
             <AnimatedTextField
               label="Nombre"
@@ -443,7 +443,7 @@ export default function Register() {
               onBlur={handleEmailBlur}
               required
               icon={<Email />}
-              helperText="Ingresa tu correo Gmail (ejemplo: usuario@gmail.com)"
+              helperText="Ingresa tu correo (ejemplo: usuario@tesjo.edu.mx)"
             />
             <AnimatedTextField
               label="Contraseña"
@@ -526,7 +526,7 @@ export default function Register() {
               }}
             >
               <Typography variant="h4" gutterBottom fontWeight="bold">
-                Registro de Alumno
+                Registro de Docentes
               </Typography>
               <Typography variant="subtitle1">
                 Completa el formulario para crear tu cuenta
