@@ -37,7 +37,6 @@ import {
     CheckCircle,
     Warning,
     Search,
-    FilterList,
     Refresh,
     Visibility,
     Done,
@@ -48,15 +47,14 @@ import {
     School,
     AdminPanelSettings,
     Edit as EditIcon,
-    Assignment,
-    AssignmentInd,
-    PlaylistAddCheck
+    PlaylistAddCheck,
+    AssignmentInd
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
 import { 
     getAdminAllAssignments, 
-    markAssignmentCompletedByAdmin, 
+    markAssignmentCompletedByAdmin,
     getAdminAssignmentStats,
     updateAssignmentByAdmin,
     getTeachersStatusForAssignment,
@@ -69,7 +67,10 @@ import ScheduledAssignments from './ScheduledAssignmentsSimple';
 const AnimatedBadge = motion(Badge);
 
 const AdminAssignments = ({ open, onClose }) => {
+    console.log('🔄 AdminAssignmentsFixed - Rendering with props:', { open, onClose: !!onClose });
+    
     const theme = useTheme();
+    console.log('🎨 Theme loaded:', !!theme);
     
     // Estados principales
     const [assignments, setAssignments] = useState([]);
@@ -100,12 +101,18 @@ const AdminAssignments = ({ open, onClose }) => {
 
     const loadStats = useCallback(async () => {
         try {
+            console.log('🔍 Loading stats...');
             const response = await getAdminAssignmentStats();
-            if (response.success) {
+            console.log('📊 Stats response:', response);
+            if (response && response.success) {
                 setStats(response.data);
+                console.log('✅ Stats loaded:', response.data);
+            } else {
+                console.error('❌ Stats response invalid:', response);
             }
         } catch (error) {
-            console.error('Error loading admin stats:', error);
+            console.error('❌ Error loading admin stats:', error);
+            console.error('❌ Stats error details:', error.response || error.message);
         }
     }, []);
 
@@ -114,7 +121,13 @@ const AdminAssignments = ({ open, onClose }) => {
             setLoading(true);
             setError('');
             
-            console.log('🔍 Loading assignments with status filter:', statusFilter);
+            console.log('🔍 Loading assignments with filters:', {
+                statusFilter,
+                searchTerm,
+                sortBy,
+                page,
+                teacherFilter
+            });
             
             const params = {
                 status: statusFilter,
@@ -125,25 +138,40 @@ const AdminAssignments = ({ open, onClose }) => {
                 ...(teacherFilter !== 'all' && { teacherId: teacherFilter })
             };
 
-            console.log('📤 Sending API request with params:', params);
-
+            console.log('📤 Calling getAdminAllAssignments with params:', params);
             const response = await getAdminAllAssignments(params);
             
-            console.log('📥 Admin Assignments Response:', response);
+            console.log('📥 Response received:', response);
             
-            if (response.success) {
-                console.log('✅ Assignments received:', response.data?.assignments?.length || 0);
-                console.log('✅ Teachers received:', response.data?.teachers?.length || 0);
+            if (response && response.success) {
+                console.log('✅ Setting assignments:', response.data?.assignments?.length || 0);
+                console.log('✅ Setting teachers:', response.data?.teachers?.length || 0);
                 
                 setAssignments(response.data?.assignments || []);
                 setTotalPages(response.data?.pagination?.pages || 1);
                 setTeachers(response.data?.teachers || []);
             } else {
                 setError('Error en la respuesta del servidor');
+                console.error('❌ Invalid response:', response);
             }
         } catch (error) {
-            console.error('Error loading assignments:', error);
-            setError('Error cargando asignaciones: ' + (error.message || 'Error desconocido'));
+            console.error('❌ Error loading assignments:', error);
+            console.error('❌ Error stack:', error.stack);
+            console.error('❌ Error response:', error.response);
+            console.error('❌ Error message:', error.message);
+            
+            let errorMessage = 'Error desconocido';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.error) {
+                errorMessage = error.error;
+            } else if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+            
+            setError('Error cargando asignaciones: ' + errorMessage);
         } finally {
             setLoading(false);
             setIsRefreshing(false);
@@ -153,6 +181,7 @@ const AdminAssignments = ({ open, onClose }) => {
     // Cargar datos cuando se abre el diálogo
     useEffect(() => {
         if (open) {
+            console.log('🔄 Dialog opened, loading data...');
             loadStats();
             loadAssignments();
         }
@@ -160,14 +189,29 @@ const AdminAssignments = ({ open, onClose }) => {
 
     // Resetear página cuando cambien los filtros
     useEffect(() => {
-        setPage(1);
+        if (page !== 1) {
+            console.log('🔄 Resetting page to 1 due to filter change');
+            setPage(1);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter, searchTerm, sortBy, teacherFilter]);
 
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
+        console.log('🔄 === REFRESH MANUAL TRIGGERED ===');
+        console.log('📊 Current filter states:', {
+            statusFilter,
+            searchTerm,
+            sortBy,
+            teacherFilter,
+            page
+        });
+        console.log('📈 Current stats:', stats);
+        console.log('📋 Current assignments count:', assignments.length);
+        
         setIsRefreshing(true);
         loadAssignments();
         loadStats();
-    };
+    }, [loadAssignments, loadStats, statusFilter, searchTerm, sortBy, teacherFilter, page, stats, assignments.length]);
 
     const handleCompleteAssignment = async (assignmentId) => {
         try {
@@ -266,59 +310,33 @@ const AdminAssignments = ({ open, onClose }) => {
         }
     };
 
-    const getStatusColor = (status, dueDate, closeDate) => {
-        if (status === 'completed') return 'success';
-        
-        const now = new Date();
-        const due = new Date(dueDate);
-        const close = new Date(closeDate);
-        
-        if (now > close) return 'error';
-        if (now > due) return 'warning';
-        
-        const daysUntilDue = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-        if (daysUntilDue <= 1) return 'error';
-        if (daysUntilDue <= 3) return 'warning';
-        
-        return 'primary';
-    };
-
-    const getStatusLabel = (status, dueDate, closeDate) => {
-        if (status === 'completed') return 'Completado';
-        if (status === 'pending') {
-            const now = new Date();
-            const due = new Date(dueDate);
-            const close = new Date(closeDate);
-            
-            if (now > close) return 'Cerrado - No entregado';
-            if (now > due) return 'Vencido - Puede entregarse';
-            
-            const daysUntilDue = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntilDue <= 0) {
-                return 'Vence hoy';
-            } else if (daysUntilDue === 1) {
-                return 'Vence mañana';
-            } else {
-                return `${daysUntilDue} días restantes`;
-            }
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'completed':
+                return 'success';
+            case 'completed-late':
+                return 'warning';
+            case 'not-delivered':
+                return 'error';
+            case 'pending':
+                return 'info';
+            default:
+                return 'grey'; // Cambiar 'default' por 'grey' que sí existe en theme.palette
         }
-        return status;
     };
 
-    const formatDate = (dateString) => {
-        try {
-            if (!dateString || dateString === 'Invalid Date') return 'Fecha inválida';
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Fecha inválida';
-            return date.toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } catch (error) {
-            console.error('Error formatting date:', error);
-            return 'Fecha inválida';
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'completed':
+                return 'Entregado';
+            case 'completed-late':
+                return 'Entregado con Retraso';
+            case 'not-delivered':
+                return 'No Entregado';
+            case 'pending':
+                return 'Pendiente';
+            default:
+                return status || 'Desconocido';
         }
     };
 
@@ -342,24 +360,36 @@ const AdminAssignments = ({ open, onClose }) => {
 
     // Si no está abierto, no renderizar nada
     if (!open) {
+        console.log('🚪 AdminAssignmentsFixed - Dialog closed, not rendering');
         return null;
     }
 
-    return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            maxWidth="xl"
-            fullWidth
-            TransitionComponent={Slide}
-            transitionDuration={300}
-            PaperProps={{
-                sx: {
-                    borderRadius: 3,
-                    background: `linear-gradient(to bottom, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`,
-                    minHeight: '90vh'
-                }
-            }}
+    console.log('🎬 AdminAssignmentsFixed - About to render Dialog with states:', {
+        assignments: assignments.length,
+        stats: !!stats,
+        loading,
+        error: !!error,
+        teachers: teachers.length
+    });
+
+    try {
+        return (
+            <Dialog
+                open={open}
+                onClose={onClose}
+                maxWidth="xl"
+                fullWidth
+                TransitionComponent={Slide}
+                transitionDuration={300}
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        background: theme?.palette?.background?.paper && theme?.palette?.grey?.[50] 
+                            ? `linear-gradient(to bottom, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`
+                            : '#ffffff',
+                        minHeight: '90vh'
+                    }
+                }}
         >
             <DialogTitle sx={{ 
                 py: 2,
@@ -409,25 +439,32 @@ const AdminAssignments = ({ open, onClose }) => {
                                 icon: <Schedule sx={{ fontSize: 32 }} />, 
                                 value: stats.overview.pending, 
                                 label: 'Pendientes',
-                                color: 'warning',
+                                color: 'info',
                                 filterValue: 'pending'
                             },
                             { 
                                 icon: <CheckCircle sx={{ fontSize: 32 }} />, 
                                 value: stats.overview.completed, 
-                                label: 'Completadas',
+                                label: 'Entregadas',
                                 color: 'success',
                                 filterValue: 'completed'
                             },
                             { 
                                 icon: <Warning sx={{ fontSize: 32 }} />, 
-                                value: stats.overview.overdue, 
-                                label: 'Vencidas',
+                                value: stats.overview['completed-late'] || 0, 
+                                label: 'Entregadas con Retraso',
+                                color: 'warning',
+                                filterValue: 'completed-late'
+                            },
+                            { 
+                                icon: <Close sx={{ fontSize: 32 }} />, 
+                                value: stats.overview['not-delivered'] || 0, 
+                                label: 'No Entregadas',
                                 color: 'error',
-                                filterValue: 'overdue'
+                                filterValue: 'not-delivered'
                             }
                         ].map((stat, index) => (
-                            <Grid item xs={6} sm={3} key={index}>
+                            <Grid item xs={6} sm={4} md={2.4} key={index}>
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -503,8 +540,9 @@ const AdminAssignments = ({ open, onClose }) => {
                                 >
                                     <MenuItem value="all">Todos</MenuItem>
                                     <MenuItem value="pending">Pendientes</MenuItem>
-                                    <MenuItem value="completed">Completadas</MenuItem>
-                                    <MenuItem value="overdue">Vencidas</MenuItem>
+                                    <MenuItem value="completed">Entregadas</MenuItem>
+                                    <MenuItem value="completed-late">Entregadas con Retraso</MenuItem>
+                                    <MenuItem value="not-delivered">No Entregadas</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -612,16 +650,13 @@ const AdminAssignments = ({ open, onClose }) => {
                             </TableHead>
                             <TableBody>
                                 {assignments.map((assignment) => {
-                                    const isOverdue = assignment.status === 'pending' && new Date(assignment.dueDate) < new Date();
-                                    const status = isOverdue ? 'vencido' : assignment.status;
-                                    
                                     return (
                                         <TableRow 
                                             key={assignment._id}
                                             hover
                                             sx={{
                                                 '&:last-child td, &:last-child th': { border: 0 },
-                                                borderLeft: `4px solid ${theme.palette[getStatusColor(status, assignment.dueDate, assignment.closeDate)].main}`
+                                                borderLeft: `4px solid ${theme?.palette?.[getStatusColor(assignment.status)]?.main || '#ccc'}`
                                             }}
                                         >
                                             <TableCell>
@@ -642,14 +677,8 @@ const AdminAssignments = ({ open, onClose }) => {
                                                     <School sx={{ fontSize: 16, color: 'text.secondary' }} />
                                                     <Box>
                                                         {(() => {
-                                                            // Debug logs
-                                                            console.log('🔍 TeacherFilter:', teacherFilter);
-                                                            console.log('🔍 Assignment assignedTo:', assignment.assignedTo);
-                                                            
-                                                            // Si hay un filtro de docente específico, mostrar solo ese docente
                                                             if (teacherFilter !== 'all') {
                                                                 const selectedTeacher = assignment.assignedTo?.find(teacher => teacher._id === teacherFilter);
-                                                                console.log('🔍 Selected teacher found:', selectedTeacher);
                                                                 if (selectedTeacher) {
                                                                     return (
                                                                         <>
@@ -664,7 +693,6 @@ const AdminAssignments = ({ open, onClose }) => {
                                                                 }
                                                             }
                                                             
-                                                            // Si no hay filtro específico, mostrar el primer docente o todos
                                                             if (assignment.assignedTo && assignment.assignedTo.length > 0) {
                                                                 const firstTeacher = assignment.assignedTo[0];
                                                                 return (
@@ -680,7 +708,6 @@ const AdminAssignments = ({ open, onClose }) => {
                                                                 );
                                                             }
                                                             
-                                                            // Si no hay docentes asignados
                                                             return (
                                                                 <>
                                                                     <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
@@ -697,8 +724,8 @@ const AdminAssignments = ({ open, onClose }) => {
                                             </TableCell>
                                             <TableCell>
                                                 <Chip
-                                                    label={getStatusLabel(status, assignment.dueDate, assignment.closeDate)}
-                                                    color={getStatusColor(status, assignment.dueDate, assignment.closeDate)}
+                                                    label={getStatusLabel(assignment.status)}
+                                                    color={getStatusColor(assignment.status)}
                                                     size="small"
                                                     sx={{ fontWeight: 'bold' }}
                                                 />
@@ -729,11 +756,11 @@ const AdminAssignments = ({ open, onClose }) => {
                                                     </Tooltip>
                                                     
                                                     {assignment.status === 'pending' && (
-                                                        <Tooltip title={isOverdue ? "Marcar como Entregado Tarde" : "Marcar como Completado"}>
+                                                        <Tooltip title="Marcar como Completado">
                                                             <IconButton
                                                                 size="small"
                                                                 onClick={() => handleCompleteAssignment(assignment._id)}
-                                                                color={isOverdue ? "warning" : "success"}
+                                                                color="success"
                                                                 disabled={actionLoading}
                                                             >
                                                                 <Done />
@@ -833,8 +860,8 @@ const AdminAssignments = ({ open, onClose }) => {
                         <DialogContent sx={{ p: 3 }}>
                             <Box mb={2}>
                                 <Chip
-                                    label={getStatusLabel(selectedAssignment.status, selectedAssignment.dueDate, selectedAssignment.closeDate)}
-                                    color={getStatusColor(selectedAssignment.status, selectedAssignment.dueDate, selectedAssignment.closeDate)}
+                                    label={getStatusLabel(selectedAssignment.status)}
+                                    color={getStatusColor(selectedAssignment.status)}
                                     sx={{ 
                                         fontWeight: 'bold',
                                         textTransform: 'uppercase',
@@ -901,7 +928,7 @@ const AdminAssignments = ({ open, onClose }) => {
                                             <strong>Fecha de Cierre:</strong> {formatDateWithTime(selectedAssignment.closeDate)}
                                         </Typography>
                                         <Typography variant="body2">
-                                            <strong>Creado el:</strong> {formatDate(selectedAssignment.createdAt)}
+                                            <strong>Creado el:</strong> {formatDateWithTime(selectedAssignment.createdAt)}
                                         </Typography>
                                     </Box>
                                 </Grid>
@@ -975,57 +1002,6 @@ const AdminAssignments = ({ open, onClose }) => {
             </Dialog>
 
             {/* Diálogo de edición de asignación */}
-            <Dialog
-                open={showEditDialog}
-                onClose={() => setShowEditDialog(false)}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        background: `linear-gradient(to bottom, ${theme.palette.background.paper}, ${theme.palette.grey[50]})`
-                    }
-                }}
-            >
-                {selectedAssignment && (
-                    <>
-                        <DialogTitle sx={{ 
-                            py: 2,
-                            px: 3,
-                            background: `linear-gradient(to right, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                            color: 'white',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                Editar Asignación
-                            </Typography>
-                            <IconButton 
-                                onClick={() => setShowEditDialog(false)}
-                                sx={{ color: 'white' }}
-                            >
-                                <Close />
-                            </IconButton>
-                        </DialogTitle>
-                        <DialogContent sx={{ p: 3 }}>
-                            <Box mb={2}>
-                                <Chip
-                                    label={getStatusLabel(selectedAssignment.status, selectedAssignment.dueDate, selectedAssignment.closeDate)}
-                                    color={getStatusColor(selectedAssignment.status, selectedAssignment.dueDate, selectedAssignment.closeDate)}
-                                    sx={{ 
-                                        fontWeight: 'bold',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: 1
-                                    }}
-                                />
-                            </Box>
-                        </DialogContent>
-                    </>
-                )}
-            </Dialog>
-
-            {/* Diálogo de edición de asignación */}
             <EditAssignment 
                 open={showEditDialog}
                 onClose={() => setShowEditDialog(false)}
@@ -1042,7 +1018,7 @@ const AdminAssignments = ({ open, onClose }) => {
                 teachers={teachers}
             />
 
-            {/* Nuevo diálogo para gestionar estados de docentes */}
+            {/* Diálogo para gestionar estados de docentes */}
             <Dialog
                 open={showTeacherStatusDialog}
                 onClose={() => setShowTeacherStatusDialog(false)}
@@ -1233,6 +1209,24 @@ const AdminAssignments = ({ open, onClose }) => {
             </Dialog>
         </Dialog>
     );
+    } catch (error) {
+        console.error('🚨 AdminAssignmentsFixed - Render error:', error);
+        return (
+            <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography variant="h6" color="error" gutterBottom>
+                        Error en el Componente
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                        {error.message || 'Error desconocido'}
+                    </Typography>
+                    <Button onClick={onClose} variant="contained">
+                        Cerrar
+                    </Button>
+                </Box>
+            </Dialog>
+        );
+    }
 };
 
 export default AdminAssignments;

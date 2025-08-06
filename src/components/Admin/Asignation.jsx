@@ -77,16 +77,6 @@ const FilePreview = styled(Paper)(({ theme }) => ({
     }
 }));
 
-const StyledSelect = styled(Select)(({ theme }) => ({
-    '& .MuiSelect-select': {
-        minHeight: '44px',
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: theme.spacing(0.5)
-    }
-}));
-
 const SectionHeader = styled(Typography)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
@@ -95,13 +85,6 @@ const SectionHeader = styled(Typography)(({ theme }) => ({
     color: theme.palette.text.secondary,
     '& svg': {
         fontSize: '1.2rem'
-    }
-}));
-
-const UserChip = styled(Chip)(() => ({
-    '& .MuiChip-avatar': {
-        width: 28,
-        height: 28
     }
 }));
 
@@ -794,40 +777,6 @@ export default function Asignation({ open, onClose, users = [] }) {
                         color="inherit"
                     >
                         Cancelar
-                    </Button>
-                    
-                    {/* Botón de diagnóstico temporal */}
-                    <Button
-                        onClick={async () => {
-                            console.log('🔍 === DIAGNÓSTICO DE DEBUG ===');
-                            const token = localStorage.getItem('token');
-                            console.log('Token en localStorage:', !!token);
-                            console.log('Token length:', token?.length || 0);
-                            console.log('Token preview:', token?.substring(0, 20) + '...');
-                            
-                            try {
-                                const response = await fetch('http://localhost:3001/api/assignments/debug-headers', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({ test: 'debug' })
-                                });
-                                const data = await response.json();
-                                console.log('Debug response:', data);
-                                setError(JSON.stringify(data, null, 2));
-                            } catch (err) {
-                                console.error('Debug error:', err);
-                                setError(`Error de debug: ${err.message}`);
-                            }
-                        }}
-                        variant="outlined"
-                        size="small"
-                        color="info"
-                        sx={{ mr: 1 }}
-                    >
-                        Debug
                     </Button>
                     
                     <AnimatedButton

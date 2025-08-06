@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/api/assignments';
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/assignments`;
 
 // Configurar token de autorización
 const getAuthHeaders = () => {
@@ -14,9 +14,24 @@ const getAuthHeaders = () => {
 };
 
 // Funciones para el admin
-export const getAdminAllAssignments = async () => {
+export const getAdminAllAssignments = async (params = {}) => {
     try {
-        const response = await axios.get(`${API_URL}/admin/all`, getAuthHeaders());
+        const queryParams = new URLSearchParams();
+        
+        // Agregar parámetros de filtrado y paginación
+        Object.keys(params).forEach(key => {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        });
+        
+        const queryString = queryParams.toString();
+        const url = queryString ? `${API_URL}/admin/all?${queryString}` : `${API_URL}/admin/all`;
+        
+        console.log('🔍 Making API request to:', url);
+        console.log('📋 Query params:', params);
+        
+        const response = await axios.get(url, getAuthHeaders());
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Error al obtener las asignaciones' };

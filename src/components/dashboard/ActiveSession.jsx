@@ -106,8 +106,8 @@ const MainProfileCard = styled(Card)(({ theme }) => ({
   position: 'relative',
   overflow: 'hidden',
   transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-  // AGREGADO: Margen superior adicional para la tarjeta principal
-  marginTop: theme.spacing(2),
+  // REDUCIDO: Margen superior más pequeño para la tarjeta principal
+  marginTop: theme.spacing(1),
   
   '&:hover': {
     transform: 'translateY(-8px)',
@@ -116,15 +116,15 @@ const MainProfileCard = styled(Card)(({ theme }) => ({
   
   [theme.breakpoints.down('sm')]: {
     borderRadius: '16px',
-    margin: `${theme.spacing(2)} ${theme.spacing(1)} ${theme.spacing(1)}`,
+    margin: `${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(0.5)}`,
   },
   
   [theme.breakpoints.up('sm')]: {
-    marginTop: theme.spacing(3),
+    marginTop: theme.spacing(1.5),
   },
   
   [theme.breakpoints.up('md')]: {
-    marginTop: theme.spacing(4),
+    marginTop: theme.spacing(2),
   }
 }));
 
@@ -481,15 +481,15 @@ const ActiveSession = () => {
 
           {/* Perfil del usuario */}
           <Grow in={showContent} timeout={1000}>
-            <MainProfileCard sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+            <MainProfileCard sx={{ mb: { xs: 1, sm: 1.5, md: 2 } }}>
               <AnimatedGradientBar />
               <CardContent 
                 sx={{ 
-                  p: { xs: 2, sm: 3, md: 4 },
-                  '&:last-child': { pb: { xs: 2, sm: 3, md: 4 } }
+                  p: { xs: 1.5, sm: 2, md: 2.5 },
+                  '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } }
                 }}
               >
-                <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} alignItems="center">
+                <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }} alignItems="center">
                   {/* Avatar */}
                   <Grid 
                     item 
@@ -530,7 +530,7 @@ const ActiveSession = () => {
                       <Box 
                         display="flex" 
                         justifyContent={{ xs: 'center', md: 'flex-start' }} 
-                        mb={{ xs: 2, sm: 3 }}
+                        mb={{ xs: 1, sm: 1.5 }}
                       >
                         <Badge 
                         >
@@ -548,7 +548,7 @@ const ActiveSession = () => {
                         </Badge>
                       </Box>
 
-                      <Grid container spacing={{ xs: 1, sm: 2 }}>
+                      <Grid container spacing={{ xs: 1, sm: 1.5 }}>
                         {userInfo.map((info, index) => (
                           <Grid item xs={12} sm={6} key={index}>
                             <Grow in={showContent} timeout={1200 + (index * 200)}>

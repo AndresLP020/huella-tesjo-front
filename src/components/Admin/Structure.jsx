@@ -4,7 +4,8 @@ import { Edit, Delete, Menu as MenuIcon, Close as CloseIcon, PersonAdd, Refresh,
 import Drawer from '@mui/material/Drawer';
 import { styled, keyframes } from '@mui/material/styles';
 import Asignation from './Asignation';
-import AdminAssignments from './AdminAssignments';
+import AdminAssignments from './AdminAssignmentsFixed';
+import AdminErrorBoundary from './AdminErrorBoundary';
 
 // Animaciones personalizadas
 const pulse = keyframes`
@@ -813,10 +814,12 @@ export default function Structure() {
             />
 
             {/* Diálogo de Administración de Asignaciones */}
-            <AdminAssignments
-                open={adminAssignmentsOpen}
-                onClose={handleCloseAdminAssignments}
-            />
+            <AdminErrorBoundary>
+                <AdminAssignments
+                    open={adminAssignmentsOpen}
+                    onClose={handleCloseAdminAssignments}
+                />
+            </AdminErrorBoundary>
         </Box>
     );
 }

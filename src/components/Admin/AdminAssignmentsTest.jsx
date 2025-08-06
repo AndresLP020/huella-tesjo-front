@@ -4,12 +4,17 @@ import {
     DialogTitle,
     DialogContent,
     Typography,
-    Box,
-    IconButton
+    Button,
+    Box
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
 
 const AdminAssignmentsTest = ({ open, onClose }) => {
+    console.log('AdminAssignmentsTest renderizado - open:', open);
+    
+    if (!open) {
+        return null;
+    }
+    
     return (
         <Dialog
             open={open}
@@ -17,27 +22,24 @@ const AdminAssignmentsTest = ({ open, onClose }) => {
             maxWidth="md"
             fullWidth
         >
-            <DialogTitle sx={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                <Typography variant="h5">
-                    Test - Gestión de Asignaciones
-                </Typography>
-                <IconButton onClick={onClose}>
-                    <Close />
-                </IconButton>
+            <DialogTitle>
+                Test - Gestión de Asignaciones
             </DialogTitle>
             <DialogContent>
-                <Box sx={{ p: 3 }}>
-                    <Typography variant="h6">
-                        🧪 Componente de prueba funcionando correctamente
+                <Box p={3}>
+                    <Typography variant="h6" gutterBottom>
+                        Componente de prueba funcionando correctamente
                     </Typography>
-                    <Typography variant="body1" sx={{ mt: 2 }}>
-                        Si puedes ver esto, el problema está en el componente AdminAssignments original.
-                        Vamos a identificar qué parte está causando el error.
+                    <Typography variant="body1" color="text.secondary" paragraph>
+                        Si ves este mensaje, el problema está en el componente AdminAssignments original.
                     </Typography>
+                    <Button 
+                        variant="contained" 
+                        onClick={onClose}
+                        sx={{ mt: 2 }}
+                    >
+                        Cerrar
+                    </Button>
                 </Box>
             </DialogContent>
         </Dialog>
