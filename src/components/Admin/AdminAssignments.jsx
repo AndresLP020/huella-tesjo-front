@@ -47,7 +47,10 @@ import {
     Person,
     School,
     AdminPanelSettings,
-    Edit as EditIcon
+    Edit as EditIcon,
+    Assignment,
+    AssignmentInd,
+    PlaylistAddCheck
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
@@ -55,7 +58,9 @@ import {
     getAdminAllAssignments, 
     markAssignmentCompletedByAdmin, 
     getAdminAssignmentStats,
-    updateAssignmentByAdmin
+    updateAssignmentByAdmin,
+    getTeachersStatusForAssignment,
+    updateTeacherStatusInAssignment
 } from '../../services/assignmentService';
 import EditAssignment from './EditAssignment';
 import ScheduledAssignments from './ScheduledAssignmentsSimple';
@@ -90,6 +95,8 @@ const AdminAssignments = ({ open, onClose }) => {
     const [showDetailDialog, setShowDetailDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showScheduledDialog, setShowScheduledDialog] = useState(false);
+    const [showTeacherStatusDialog, setShowTeacherStatusDialog] = useState(false);
+    const [assignmentTeachers, setAssignmentTeachers] = useState([]);
     const [actionLoading, setActionLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -192,6 +199,43 @@ const AdminAssignments = ({ open, onClose }) => {
     const handleEditAssignment = (assignment) => {
         setSelectedAssignment(assignment);
         setShowEditDialog(true);
+    };
+
+    // Nueva función para manejar el diálogo de estados de docentes
+    const handleManageTeacherStates = async (assignment) => {
+        try {
+            setActionLoading(true);
+            setSelectedAssignment(assignment);
+            
+            // Usar el servicio en lugar de fetch directo
+            const data = await getTeachersStatusForAssignment(assignment._id);
+            setAssignmentTeachers(data.teachersStatus || []);
+            setShowTeacherStatusDialog(true);
+        } catch (error) {
+            console.error('Error:', error);
+            setError(error.message || 'Error al cargar los estados de los docentes');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // Función para actualizar el estado de un docente específico
+    const handleUpdateTeacherStatus = async (teacherId, newStatus) => {
+        try {
+            setActionLoading(true);
+            
+            // Usar el servicio en lugar de fetch directo
+            await updateTeacherStatusInAssignment(selectedAssignment._id, teacherId, newStatus);
+            
+            // Recargar los estados actualizados
+            await handleManageTeacherStates(selectedAssignment);
+            await loadAssignments(); // Recargar la lista principal
+        } catch (error) {
+            console.error('Error:', error);
+            setError(error.message || 'Error al actualizar el estado del docente');
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     const handleSaveAssignment = async (updatedData) => {
@@ -704,6 +748,17 @@ const AdminAssignments = ({ open, onClose }) => {
                                                             <EditIcon />
                                                         </IconButton>
                                                     </Tooltip>
+                                                    
+                                                    <Tooltip title="Gestionar Estados de Docentes">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleManageTeacherStates(assignment)}
+                                                            color="secondary"
+                                                            disabled={actionLoading}
+                                                        >
+                                                            <PlaylistAddCheck />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                 </Box>
                                             </TableCell>
                                         </TableRow>
@@ -985,6 +1040,196 @@ const AdminAssignments = ({ open, onClose }) => {
                 onClose={() => setShowScheduledDialog(false)}
                 teachers={teachers}
             />
+
+            {/* Nuevo diálogo para gestionar estados de docentes */}
+            <Dialog
+                open={showTeacherStatusDialog}
+                onClose={() => setShowTeacherStatusDialog(false)}
+                maxWidth="md"
+                fullWidth
+                TransitionComponent={Slide}
+                transitionDuration={300}
+            >
+                <DialogTitle sx={{ 
+                    backgroundColor: 'primary.main', 
+                    color: 'primary.contrastText',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <PlaylistAddCheck />
+                        <Typography variant="h6">
+                            Gestionar Estados de Docentes
+                        </Typography>
+                    </Box>
+                    <IconButton 
+                        onClick={() => setShowTeacherStatusDialog(false)}
+                        sx={{ color: 'primary.contrastText' }}
+                    >
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                
+                <DialogContent sx={{ p: 3 }}>
+                    {selectedAssignment && (
+                        <>
+                            <Typography variant="h6" gutterBottom>
+                                {selectedAssignment.title}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                {selectedAssignment.description}
+                            </Typography>
+                            
+                            <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
+                                Estados de Entrega por Docente
+                            </Typography>
+                            
+                            {assignmentTeachers.length === 0 ? (
+                                <Typography variant="body1" color="text.secondary">
+                                    {actionLoading ? 'Cargando docentes...' : 'No hay docentes asignados a esta actividad.'}
+                                </Typography>
+                            ) : (
+                                <Grid container spacing={2}>
+                                    {assignmentTeachers.map((teacher, index) => (
+                                        <Grid item xs={12} key={index}>
+                                            <Paper 
+                                                elevation={2} 
+                                                sx={{ 
+                                                    p: 2, 
+                                                    borderRadius: 2,
+                                                    border: '1px solid',
+                                                    borderColor: 'divider'
+                                                }}
+                                            >
+                                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                                    <Box display="flex" alignItems="center" gap={2}>
+                                                        <AssignmentInd color="primary" />
+                                                        <Box>
+                                                            <Typography variant="subtitle1" fontWeight="bold">
+                                                                {teacher.nombre} {teacher.apellidoPaterno} {teacher.apellidoMaterno || ''}
+                                                            </Typography>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {teacher.email}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                    
+                                                    <Box display="flex" alignItems="center" gap={2}>
+                                                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                                                            <InputLabel>Seleccionar Estado</InputLabel>
+                                                            <Select
+                                                                value={teacher.status || 'pending'}
+                                                                label="Seleccionar Estado"
+                                                                onChange={(e) => handleUpdateTeacherStatus(teacher._id || teacher.teacherId, e.target.value)}
+                                                                disabled={actionLoading}
+                                                            >
+                                                                <MenuItem value="completed">
+                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                        <Chip 
+                                                                            size="small" 
+                                                                            label="Entregado" 
+                                                                            sx={{ 
+                                                                                backgroundColor: '#4caf50', 
+                                                                                color: 'white',
+                                                                                minWidth: 80
+                                                                            }} 
+                                                                        />
+                                                                    </Box>
+                                                                </MenuItem>
+                                                                <MenuItem value="completed-late">
+                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                        <Chip 
+                                                                            size="small" 
+                                                                            label="Entregado con Retraso" 
+                                                                            sx={{ 
+                                                                                backgroundColor: '#ff9800', 
+                                                                                color: 'white',
+                                                                                minWidth: 80
+                                                                            }} 
+                                                                        />
+                                                                    </Box>
+                                                                </MenuItem>
+                                                                <MenuItem value="not-delivered">
+                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                        <Chip 
+                                                                            size="small" 
+                                                                            label="No Entregado" 
+                                                                            sx={{ 
+                                                                                backgroundColor: '#f44336', 
+                                                                                color: 'white',
+                                                                                minWidth: 80
+                                                                            }} 
+                                                                        />
+                                                                    </Box>
+                                                                </MenuItem>
+                                                                <MenuItem value="pending">
+                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                        <Chip 
+                                                                            size="small" 
+                                                                            label="Pendiente" 
+                                                                            sx={{ 
+                                                                                backgroundColor: '#795548', 
+                                                                                color: 'white',
+                                                                                minWidth: 80
+                                                                            }} 
+                                                                        />
+                                                                    </Box>
+                                                                </MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                        
+                                                        {/* Mostrar estado actual */}
+                                                        <Box>
+                                                            {teacher.status === 'completed' && (
+                                                                <Chip 
+                                                                    size="small" 
+                                                                    label="Entregado" 
+                                                                    sx={{ backgroundColor: '#4caf50', color: 'white' }} 
+                                                                />
+                                                            )}
+                                                            {teacher.status === 'completed-late' && (
+                                                                <Chip 
+                                                                    size="small" 
+                                                                    label="Entregado con Retraso" 
+                                                                    sx={{ backgroundColor: '#ff9800', color: 'white' }} 
+                                                                />
+                                                            )}
+                                                            {teacher.status === 'not-delivered' && (
+                                                                <Chip 
+                                                                    size="small" 
+                                                                    label="No Entregado" 
+                                                                    sx={{ backgroundColor: '#f44336', color: 'white' }} 
+                                                                />
+                                                            )}
+                                                            {(!teacher.status || teacher.status === 'pending') && (
+                                                                <Chip 
+                                                                    size="small" 
+                                                                    label="Pendiente" 
+                                                                    sx={{ backgroundColor: '#795548', color: 'white' }} 
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    </Box>
+                                                </Box>
+                                            </Paper>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </>
+                    )}
+                </DialogContent>
+                
+                <DialogActions sx={{ p: 2 }}>
+                    <Button 
+                        onClick={() => setShowTeacherStatusDialog(false)}
+                        variant="outlined"
+                    >
+                        Cerrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Dialog>
     );
 };

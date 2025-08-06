@@ -1,466 +1,219 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3001/api';
+const API_URL = 'http://localhost:3001/api/assignments';
 
-// Configurar interceptor para incluir el token automáticamente
+// Configurar token de autorización
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-// Obtener estadísticas de asignaciones del docente
-export const getTeacherAssignmentStats = async () => {
-    try {
-        const response = await axios.get(`${BASE_URL}/assignments/teacher/stats`, {
-            headers: getAuthHeaders()
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error obteniendo estadísticas de asignaciones:', error);
-        throw error;
-    }
-};
-
-// Obtener asignaciones del docente con filtros
-export const getTeacherAssignments = async (params = {}) => {
-    try {
-        console.log('📤 getTeacherAssignments - Parámetros enviados:', params);
-        
-        const queryParams = new URLSearchParams();
-        
-        if (params.status) queryParams.append('status', params.status);
-        if (params.search) queryParams.append('search', params.search);
-        if (params.sort) queryParams.append('sort', params.sort);
-        if (params.limit) queryParams.append('limit', params.limit);
-        if (params.page) queryParams.append('page', params.page);
-        
-        const url = `${BASE_URL}/assignments/teacher/assignments${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-        
-        console.log('🔗 URL construida:', url);
-        console.log('🔑 Headers:', getAuthHeaders());
-        
-        const response = await axios.get(url, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta recibida:', {
-            success: response.data.success,
-            totalAsignaciones: response.data.assignments?.length || 0,
-            paginacion: response.data.pagination
-        });
-        
-        if (response.data.assignments?.length > 0) {
-            console.log('📝 Primeras asignaciones recibidas:');
-            response.data.assignments.slice(0, 3).forEach((assignment, index) => {
-                console.log(`   ${index + 1}. ${assignment.title} - ${assignment.status}`);
-            });
-        } else {
-            console.log('❌ No se recibieron asignaciones');
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
         }
-        
-        return response.data;
-    } catch (error) {
-        console.error('❌ Error obteniendo asignaciones del docente:', error);
-        throw error;
-    }
+    };
 };
 
-// Marcar asignación como completada
-export const markAssignmentCompleted = async (assignmentId) => {
+// Funciones para el admin
+export const getAdminAllAssignments = async () => {
     try {
-        console.log('📤 Enviando petición para completar asignación:', assignmentId);
-        
-        const response = await axios.patch(`${BASE_URL}/assignments/teacher/${assignmentId}/complete`, {}, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta recibida:', response.data);
+        const response = await axios.get(`${API_URL}/admin/all`, getAuthHeaders());
         return response.data;
     } catch (error) {
-        console.error('❌ Error en markAssignmentCompleted:', error);
-        
-        // Mejorar el manejo de errores
-        if (error.response) {
-            // El servidor respondió con un código de error
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            // La petición se hizo pero no hubo respuesta
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            // Algo más pasó al configurar la petición
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al obtener las asignaciones' };
     }
 };
 
-// Obtener todas las asignaciones del docente (endpoint original)
-export const getMyAssignments = async () => {
-    try {
-        const response = await axios.get(`${BASE_URL}/assignments/my-assignments`, {
-            headers: getAuthHeaders()
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error obteniendo mis asignaciones:', error);
-        throw error;
-    }
-};
-
-// Obtener detalles de una asignación específica
-export const getAssignmentById = async (assignmentId) => {
-    try {
-        const response = await axios.get(`${BASE_URL}/assignments/${assignmentId}`, {
-            headers: getAuthHeaders()
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error obteniendo detalles de la asignación:', error);
-        throw error;
-    }
-};
-
-// Obtener estadísticas de todos los profesores
-export const getAllTeachersStats = async () => {
-    try {
-        const response = await axios.get('/api/assignments/teachers/stats');
-        return response.data;
-    } catch (error) {
-        console.error('Error getting all teachers stats:', error);
-        throw error;
-    }
-};
-
-// ========== FUNCIONES PARA ADMINISTRADOR ==========
-
-// Obtener todas las asignaciones para administrador con filtros
-export const getAdminAllAssignments = async (params = {}) => {
-    try {
-        console.log('📤 getAdminAllAssignments - Parámetros enviados:', params);
-        
-        const queryParams = new URLSearchParams();
-        
-        if (params.status) queryParams.append('status', params.status);
-        if (params.search) queryParams.append('search', params.search);
-        if (params.sort) queryParams.append('sort', params.sort);
-        if (params.limit) queryParams.append('limit', params.limit);
-        if (params.page) queryParams.append('page', params.page);
-        if (params.teacherId) queryParams.append('teacherId', params.teacherId);
-        
-        const url = `${BASE_URL}/assignments/admin/all${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-        
-        console.log('🔗 URL construida:', url);
-        console.log('🔑 Headers:', getAuthHeaders());
-        
-        const response = await axios.get(url, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta recibida:', {
-            success: response.data.success,
-            totalAsignaciones: response.data.data?.assignments?.length || 0,
-            paginacion: response.data.data?.pagination
-        });
-        
-        return response.data;
-    } catch (error) {
-        console.error('❌ Error obteniendo todas las asignaciones para admin:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
-    }
-};
-
-// Marcar asignación como completada desde admin
-export const markAssignmentCompletedByAdmin = async (assignmentId) => {
-    try {
-        console.log('📤 Admin marcando asignación como completada:', assignmentId);
-        
-        const response = await axios.patch(`${BASE_URL}/assignments/admin/${assignmentId}/complete`, {}, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta recibida:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('❌ Error en markAssignmentCompletedByAdmin:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
-    }
-};
-
-// Obtener estadísticas de asignaciones para administrador
 export const getAdminAssignmentStats = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/assignments/admin/stats`, {
-            headers: getAuthHeaders()
-        });
+        const response = await axios.get(`${API_URL}/admin/stats`, getAuthHeaders());
         return response.data;
     } catch (error) {
-        console.error('Error obteniendo estadísticas de asignaciones para admin:', error);
-        throw error;
+        throw error.response?.data || { message: 'Error al obtener las estadísticas' };
     }
 };
 
-// Actualizar asignación desde admin
-export const updateAssignmentByAdmin = async (assignmentId, updateData) => {
+export const markAssignmentCompletedByAdmin = async (assignmentId) => {
     try {
-        console.log('📤 Admin actualizando asignación:', assignmentId, updateData);
-        
-        const response = await axios.put(`${BASE_URL}/assignments/admin/${assignmentId}`, updateData, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta recibida:', response.data);
+        const response = await axios.patch(
+            `${API_URL}/admin/${assignmentId}/complete`,
+            {},
+            getAuthHeaders()
+        );
         return response.data;
     } catch (error) {
-        console.error('❌ Error en updateAssignmentByAdmin:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al marcar como completada' };
     }
 };
 
-// Programar una nueva asignación
-export const scheduleAssignment = async (assignmentData) => {
+export const updateAssignmentByAdmin = async (assignmentId, assignmentData) => {
     try {
-        console.log('📤 Programando nueva asignación:', assignmentData);
-        
-        const response = await axios.post(`${BASE_URL}/assignments/admin/schedule`, assignmentData, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Respuesta de asignación programada:', response.data);
+        const response = await axios.put(
+            `${API_URL}/admin/${assignmentId}`,
+            assignmentData,
+            getAuthHeaders()
+        );
         return response.data;
     } catch (error) {
-        console.error('❌ Error en scheduleAssignment:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al actualizar la asignación' };
     }
 };
 
-// Obtener asignaciones programadas
-export const getScheduledAssignments = async (params = {}) => {
+// Nuevas funciones para gestión de estados de docentes
+export const getTeachersStatusForAssignment = async (assignmentId) => {
     try {
-        console.log('📤 Obteniendo asignaciones programadas:', params);
-        
-        const queryParams = new URLSearchParams();
-        
-        if (params.status) queryParams.append('status', params.status);
-        if (params.search) queryParams.append('search', params.search);
-        if (params.sort) queryParams.append('sort', params.sort);
-        if (params.limit) queryParams.append('limit', params.limit);
-        if (params.page) queryParams.append('page', params.page);
-        
-        const url = `${BASE_URL}/assignments/admin/scheduled${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-        
-        const response = await axios.get(url, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Asignaciones programadas recibidas:', response.data);
+        const response = await axios.get(
+            `${API_URL}/${assignmentId}/teachers-status`,
+            getAuthHeaders()
+        );
         return response.data;
     } catch (error) {
-        console.error('❌ Error en getScheduledAssignments:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al obtener los estados de los docentes' };
     }
 };
 
-// Cancelar una asignación programada
-export const cancelScheduledAssignment = async (assignmentId) => {
+export const updateTeacherStatusInAssignment = async (assignmentId, teacherId, status) => {
     try {
-        console.log('📤 Cancelando asignación programada:', assignmentId);
-        
-        const response = await axios.delete(`${BASE_URL}/assignments/admin/scheduled/${assignmentId}`, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Asignación programada cancelada:', response.data);
+        const response = await axios.patch(
+            `${API_URL}/${assignmentId}/teacher-status`,
+            { teacherId, status },
+            getAuthHeaders()
+        );
         return response.data;
     } catch (error) {
-        console.error('❌ Error en cancelScheduledAssignment:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al actualizar el estado del docente' };
     }
 };
 
-// Editar una asignación programada
-export const updateScheduledAssignment = async (assignmentId, updateData) => {
+// Funciones para usuarios generales
+export const getAllAssignments = async () => {
     try {
-        console.log('📤 Actualizando asignación programada:', assignmentId, updateData);
-        
-        const response = await axios.put(`${BASE_URL}/assignments/admin/scheduled/${assignmentId}`, updateData, {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('📥 Asignación programada actualizada:', response.data);
+        const response = await axios.get(`${API_URL}/all`, getAuthHeaders());
         return response.data;
     } catch (error) {
-        console.error('❌ Error en updateScheduledAssignment:', error);
-        
-        if (error.response) {
-            const errorData = error.response.data;
-            console.error('❌ Error del servidor:', errorData);
-            throw {
-                response: {
-                    data: errorData
-                },
-                message: errorData.error || 'Error del servidor'
-            };
-        } else if (error.request) {
-            console.error('❌ No hay respuesta del servidor');
-            throw {
-                message: 'No se pudo conectar con el servidor'
-            };
-        } else {
-            console.error('❌ Error al configurar la petición:', error.message);
-            throw {
-                message: error.message || 'Error desconocido'
-            };
-        }
+        throw error.response?.data || { message: 'Error al obtener las asignaciones' };
+    }
+};
+
+export const getUserAssignments = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/my-assignments`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener mis asignaciones' };
+    }
+};
+
+export const updateAssignmentStatus = async (assignmentId, status) => {
+    try {
+        const response = await axios.patch(
+            `${API_URL}/${assignmentId}/status`,
+            { status },
+            getAuthHeaders()
+        );
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al actualizar el estado' };
+    }
+};
+
+export const getAssignmentById = async (assignmentId) => {
+    try {
+        const response = await axios.get(`${API_URL}/${assignmentId}`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener la asignación' };
+    }
+};
+
+export const getUserDashboardStats = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/dashboard-stats`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener las estadísticas del dashboard' };
+    }
+};
+
+export const getFilteredAssignments = async (filters) => {
+    try {
+        const queryParams = new URLSearchParams(filters).toString();
+        const response = await axios.get(`${API_URL}/filtered?${queryParams}`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener las asignaciones filtradas' };
+    }
+};
+
+// Funciones para docentes
+export const getTeacherAssignmentStats = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/teacher/stats`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener las estadísticas del docente' };
+    }
+};
+
+export const getTeacherFilteredAssignments = async (filters) => {
+    try {
+        const queryParams = new URLSearchParams(filters).toString();
+        const response = await axios.get(`${API_URL}/teacher/assignments?${queryParams}`, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al obtener las asignaciones del docente' };
+    }
+};
+
+// Alias para compatibilidad
+export const getTeacherAssignments = getTeacherFilteredAssignments;
+
+// Función para obtener estadísticas de todos los docentes
+export const getAllTeachersStats = async () => {
+    // Por ahora devolvemos un objeto vacío ya que esta ruta no existe en el backend
+    // TODO: Implementar la ruta /admin/teachers-stats en el backend si es necesaria
+    return { teachers: [], totalTeachers: 0 };
+};
+
+export const markAssignmentCompleted = async (assignmentId) => {
+    try {
+        const response = await axios.patch(
+            `${API_URL}/teacher/${assignmentId}/complete`,
+            {},
+            getAuthHeaders()
+        );
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al marcar como completada' };
+    }
+};
+
+// Función para crear asignaciones
+export const createAssignment = async (assignmentData) => {
+    try {
+        const response = await axios.post(`${API_URL}/`, assignmentData, getAuthHeaders());
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Error al crear la asignación' };
     }
 };
 
 export default {
-    getTeacherAssignmentStats,
-    getTeacherAssignments,
-    markAssignmentCompleted,
-    getMyAssignments,
-    getAssignmentById,
-    getAllTeachersStats,
-    // Funciones para administrador
     getAdminAllAssignments,
-    markAssignmentCompletedByAdmin,
     getAdminAssignmentStats,
+    markAssignmentCompletedByAdmin,
     updateAssignmentByAdmin,
-    // Funciones para asignaciones programadas
-    scheduleAssignment,
-    getScheduledAssignments,
-    cancelScheduledAssignment,
-    updateScheduledAssignment
+    getTeachersStatusForAssignment,
+    updateTeacherStatusInAssignment,
+    getAllAssignments,
+    getUserAssignments,
+    updateAssignmentStatus,
+    getAssignmentById,
+    getUserDashboardStats,
+    getFilteredAssignments,
+    getTeacherAssignmentStats,
+    getTeacherFilteredAssignments,
+    getTeacherAssignments,
+    getAllTeachersStats,
+    markAssignmentCompleted,
+    createAssignment
 };
