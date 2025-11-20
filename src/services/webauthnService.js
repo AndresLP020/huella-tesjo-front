@@ -1,3 +1,9 @@
+// Convierte base64url a base64 estándar
+function base64urlToBase64(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return str;
+}
 import axios from 'axios';
 import { 
   browserSupportsWebAuthn 
@@ -68,10 +74,14 @@ export class WebAuthnService {
       // Convertir datos base64 a Uint8Array para WebAuthn
       const publicKeyOptions = {
         ...options,
-        challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)),
+        challenge: Uint8Array.from(atob(base64urlToBase64(options.challenge)), c => c.charCodeAt(0)),
         user: {
           ...options.user,
-          id: Uint8Array.from(atob(options.user.id), c => c.charCodeAt(0))
+          id: Uint8Array.from(atob(base64urlToBase64(options.user.id)), c => c.charCodeAt(0))
+        },
+        rp: {
+          id: options.rpID || 'localhost',
+          name: options.rpName || 'Sistema de Seguimiento de Docentes'
         }
       };
 
@@ -79,7 +89,7 @@ export class WebAuthnService {
       if (options.excludeCredentials) {
         publicKeyOptions.excludeCredentials = options.excludeCredentials.map(cred => ({
           ...cred,
-          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0))
+          id: Uint8Array.from(atob(base64urlToBase64(cred.id)), c => c.charCodeAt(0))
         }));
       }
       
@@ -106,7 +116,7 @@ export class WebAuthnService {
       const registrationData = {
         response: {
           id: credential.id,
-          rawId: credential.id,
+          rawId: credentialIdBase64url,
           response: {
             attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
             clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON)))
@@ -185,16 +195,16 @@ export class WebAuthnService {
       
       // Preparar opciones de autenticación
       const publicKeyOptions = {
-        challenge: Uint8Array.from(atob(challenge), c => c.charCodeAt(0)),
+        challenge: Uint8Array.from(atob(base64urlToBase64(challenge)), c => c.charCodeAt(0)),
         timeout: timeout || 60000,
         userVerification: "required"
       };
-      
+
       // Si tenemos credentials específicos del usuario, agregarlos
       if (allowCredentials && allowCredentials.length > 0) {
         console.log('🔐 Usando credenciales específicas del usuario:', allowCredentials.length);
         publicKeyOptions.allowCredentials = allowCredentials.map(cred => ({
-          id: Uint8Array.from(atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+          id: Uint8Array.from(atob(base64urlToBase64(cred.id)), c => c.charCodeAt(0)),
           type: cred.type || 'public-key'
         }));
       }
