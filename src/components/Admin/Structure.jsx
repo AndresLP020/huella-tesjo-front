@@ -116,7 +116,7 @@ export default function Structure() {
         
         try {
             setLoading(true);
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+            const response = await fetch(`/api/users`, {
                 headers: {
                     'Cache-Control': force ? 'no-cache' : 'max-age=300', // Cache por 5 minutos
                     'Pragma': force ? 'no-cache' : 'cache'
@@ -154,7 +154,7 @@ export default function Structure() {
             }
             
             console.log('Realizando petición a la API de estadísticas');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stats/teachers`, {
+            const response = await fetch(`/api/stats/teachers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

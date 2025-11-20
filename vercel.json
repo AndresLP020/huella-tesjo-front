@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://huella-tesjo-back3.vercel.app/api/:match*"
+    }
+  ]
+}

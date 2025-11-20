@@ -103,7 +103,7 @@ const AdminAssignments = ({ open, onClose }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No hay token de autenticación');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stats/teachers`, {
+            const response = await fetch(`/api/stats/teachers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
