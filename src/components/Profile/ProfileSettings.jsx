@@ -86,7 +86,7 @@ const ProfileSettings = () => {
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               <Avatar
                 src={currentUser?.fotoPerfil 
-                  ? `${import.meta.env.VITE_API_URL}/uploads/perfiles/${currentUser.fotoPerfil}?t=${Date.now()}`
+                  ? `http://localhost:3001/uploads/perfiles/${currentUser.fotoPerfil}?t=${Date.now()}`
                   : undefined
                 }
                 sx={{

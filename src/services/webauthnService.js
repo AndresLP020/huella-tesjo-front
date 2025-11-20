@@ -3,7 +3,7 @@ import {
   browserSupportsWebAuthn 
 } from '@simplewebauthn/browser';
 
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:3001/api';
 
 export class WebAuthnService {
   

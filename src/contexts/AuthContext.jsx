@@ -1,9 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
-
 import axios from 'axios';
 import setupAxiosInterceptors from '../utils/axiosDebugger';
 import WebAuthnService from '../services/webauthnService';
-const API_BASE = '/api';
 
 export const AuthContext = createContext();
 
@@ -19,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/login`, {
+      const response = await axios.post('http://localhost:3001/api/auth/login', {
         email,
         password
       });
@@ -41,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/register`, userData, {
+      const response = await axios.post('http://localhost:3001/api/auth/register', userData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         }
@@ -87,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
-      const response = await axios.get(`${API_BASE}/auth/verify`, {
+      const response = await axios.get('http://localhost:3001/api/auth/verify', {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal
       });
@@ -135,7 +133,7 @@ export const AuthProvider = ({ children }) => {
 
   const forgotPassword = async (email) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/forgot-password`, {
+      const response = await axios.post('http://localhost:3001/api/auth/forgot-password', {
         email
       });
       
@@ -150,7 +148,7 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (token, newPassword) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/reset-password`, {
+      const response = await axios.post('http://localhost:3001/api/auth/reset-password', {
         token,
         newPassword
       });

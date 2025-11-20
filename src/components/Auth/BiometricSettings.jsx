@@ -139,7 +139,7 @@ const BiometricSettings = () => {
           challenge: new Uint8Array(32), // Challenge temporal para la captura local
           rp: {
             name: 'Sistema de Seguimiento de Docentes',
-            id: import.meta.env.VITE_API_URL.replace(/^https?:\/\//, '')
+            id: 'localhost'
           },
           user: {
             id: new TextEncoder().encode('temp_user_id'),

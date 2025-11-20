@@ -116,7 +116,7 @@ export default function Structure() {
         
         try {
             setLoading(true);
-            const response = await fetch(`/api/users`, {
+            const response = await fetch('http://localhost:3001/api/users', {
                 headers: {
                     'Cache-Control': force ? 'no-cache' : 'max-age=300', // Cache por 5 minutos
                     'Pragma': force ? 'no-cache' : 'cache'
@@ -154,7 +154,7 @@ export default function Structure() {
             }
             
             console.log('Realizando petición a la API de estadísticas');
-            const response = await fetch(`/api/stats/teachers`, {
+            const response = await fetch('http://localhost:3001/api/stats/teachers', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -507,8 +507,8 @@ export default function Structure() {
                                                         <TableCell>
                                                             <StyledAvatar
                                                                 src={user.fotoPerfil 
-                                                                    ? `${import.meta.env.VITE_API_URL}/uploads/perfiles/${user.fotoPerfil}?t=${Date.now()}`
-                                                                    : `${import.meta.env.VITE_API_URL}/uploads/perfiles/2138822222222_1749571359362.png`
+                                                                    ? `http://localhost:3001/uploads/perfiles/${user.fotoPerfil}?t=${Date.now()}`
+                                                                    : 'http://localhost:3001/uploads/perfiles/2138822222222_1749571359362.png'
                                                                 }
                                                                 alt={`Foto de perfil de ${user.nombreCompleto}`}
                                                                 onError={(e) => {

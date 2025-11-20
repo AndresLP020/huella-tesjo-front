@@ -471,8 +471,8 @@ const ActiveSession = () => {
                     <Box>
                       <ResponsiveAvatar
                         src={currentUser?.fotoPerfil && currentUser.fotoPerfil !== ''
-                          ? `${import.meta.env.VITE_API_URL}/uploads/perfiles/${currentUser.fotoPerfil}?t=${Date.now()}`
-                          : `${import.meta.env.VITE_API_URL}/uploads/perfiles/2138822222222_1749571359362.png`
+                          ? `http://localhost:3001/uploads/perfiles/${currentUser.fotoPerfil}?t=${Date.now()}`
+                          : 'http://localhost:3001/uploads/perfiles/2138822222222_1749571359362.png'
                         }
                         alt={`Foto de perfil de ${currentUser?.nombre || 'Usuario'}`}
                         sx={{ 

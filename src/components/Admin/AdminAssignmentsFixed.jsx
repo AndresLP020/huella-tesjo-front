@@ -103,7 +103,7 @@ const AdminAssignments = ({ open, onClose }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No hay token de autenticación');
-            const response = await fetch(`/api/stats/teachers`, {
+            const response = await fetch('http://localhost:3001/api/stats/teachers', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -972,7 +972,7 @@ const AdminAssignments = ({ open, onClose }) => {
                                                         <Chip
                                                             icon={<FileDownload />}
                                                             label={file.fileName}
-                                                            onClick={() => window.open(`${import.meta.env.VITE_API_URL}/${file.fileUrl}`, '_blank')}
+                                                            onClick={() => window.open(`http://localhost:3001/${file.fileUrl}`, '_blank')}
                                                             sx={{ 
                                                                 mr: 1, 
                                                                 mb: 1,

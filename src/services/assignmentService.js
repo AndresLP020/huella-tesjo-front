@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = '/api/assignments';
+const API_URL = 'http://localhost:3001/api/assignments';
 
 // Configurar token de autorización
 const getAuthHeaders = () => {

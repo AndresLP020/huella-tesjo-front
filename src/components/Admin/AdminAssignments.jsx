@@ -982,7 +982,7 @@ const AdminAssignments = ({ open, onClose }) => {
                                                         <Chip
                                                             icon={<FileDownload />}
                                                             label={file.fileName}
-                                                            onClick={() => window.open(`${import.meta.env.VITE_API_URL}/${file.fileUrl}`, '_blank')}
+                                                            onClick={() => window.open(`http://localhost:3001/${file.fileUrl}`, '_blank')}
                                                             sx={{ 
                                                                 mr: 1, 
                                                                 mb: 1,
