@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import WebAuthnService from '../../services/webauthnService';
+import WebAuthnDiagnostic from './WebAuthnDiagnostic';
 import {
   Box,
   Card,
@@ -38,7 +39,10 @@ import {
   Shield,
   TouchApp,
   Refresh,
-  Done
+  Done,
+  BugReport,
+  Computer,
+  Usb
 } from '@mui/icons-material';
 
 const BiometricSettings = () => {
@@ -58,6 +62,8 @@ const BiometricSettings = () => {
   const [registrationStep, setRegistrationStep] = useState(0);
   const [registrationSamples, setRegistrationSamples] = useState([]);
   const [currentSampleAttempting, setCurrentSampleAttempting] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [selectedAuthType, setSelectedAuthType] = useState('both');
 
   const {
     registerBiometricDevice,
@@ -424,17 +430,36 @@ const BiometricSettings = () => {
 
                 <Divider />
 
-                {/* Botón eliminar */}
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Delete />}
-                  onClick={() => setShowDeleteDialog(true)}
-                  disabled={operating}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  Eliminar Huella Permanentemente
-                </Button>
+                {/* Botones de acción */}
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<BugReport />}
+                    onClick={() => setShowDiagnostic(true)}
+                    disabled={operating}
+                    sx={{ 
+                      borderColor: 'info.main', 
+                      color: 'info.main',
+                      '&:hover': { 
+                        borderColor: 'info.dark', 
+                        bgcolor: 'info.main',
+                        color: 'white'
+                      }
+                    }}
+                  >
+                    Diagnóstico WebAuthn
+                  </Button>
+                  
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Delete />}
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={operating}
+                  >
+                    Eliminar Huella Permanentemente
+                  </Button>
+                </Box>
               </Box>
             </Box>
           ) : (
@@ -487,6 +512,15 @@ const BiometricSettings = () => {
                 }}
               >
                 {operating ? 'Configurando...' : 'Activar inicio con huella'}
+              </Button>
+
+              <Button
+                variant="text"
+                startIcon={<BugReport />}
+                onClick={() => setShowDiagnostic(true)}
+                sx={{ mt: 2 }}
+              >
+                Diagnóstico de compatibilidad
               </Button>
             </Box>
           )}
@@ -750,6 +784,12 @@ const BiometricSettings = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Componente de diagnóstico WebAuthn */}
+      <WebAuthnDiagnostic 
+        open={showDiagnostic} 
+        onClose={() => setShowDiagnostic(false)} 
+      />
     </Box>
   );
 };

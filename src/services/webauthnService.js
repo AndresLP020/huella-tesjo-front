@@ -38,8 +38,9 @@ export class WebAuthnService {
 
   /**
    * Registrar un nuevo dispositivo biométrico
+   * @param {string} authenticatorType - 'platform' | 'cross-platform' | 'both'
    */
-  static async registerDevice() {
+  static async registerDevice(authenticatorType = 'both') {
     if (!this.isSupported()) {
       throw new Error('Este navegador no soporta autenticación biométrica');
     }
@@ -51,8 +52,10 @@ export class WebAuthnService {
         throw new Error('Debes estar logueado para registrar un dispositivo biométrico');
       }
 
-      console.log('🔑 Obteniendo opciones de registro...');
-      const optionsResponse = await axios.post(`${API_BASE}/auth/biometric/registration-options`, {}, {
+      console.log('🔑 Obteniendo opciones de registro...', `Tipo: ${authenticatorType}`);
+      const optionsResponse = await axios.post(`${API_BASE}/auth/biometric/registration-options`, {
+        authenticatorType
+      }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -310,6 +313,27 @@ export class WebAuthnService {
     } catch (error) {
       console.error('Error cambiando estado biométrico:', error);
       throw new Error(error.response?.data?.message || 'Error al cambiar estado biométrico');
+    }
+  }
+
+  /**
+   * Ejecutar diagnóstico de autenticadores
+   */
+  static async runDiagnostic() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No autenticado');
+      }
+
+      const response = await axios.get(`${API_BASE}/auth/biometric/diagnostic`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error en diagnóstico:', error);
+      throw new Error(error.response?.data?.message || 'Error en diagnóstico');
     }
   }
 
