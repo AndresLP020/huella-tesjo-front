@@ -2,7 +2,7 @@
 const API_CONFIG = {
   // URL base de la API
   baseURL: process.env.NODE_ENV === 'production' 
-    ? 'https://tu-backend.vercel.app/api'  // CAMBIAR por tu dominio de Vercel
+    ? 'https://huella-tesjo-back3.vercel.app'  // CAMBIAR por tu dominio de Vercel
     : 'http://localhost:3001/api',
   
   // Timeout para requests
