@@ -3,7 +3,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import setupAxiosInterceptors from '../utils/axiosDebugger';
 import WebAuthnService from '../services/webauthnService';
-const API_BASE = import.meta.env.VITE_API_URL;
+const API_BASE = import.meta.env.VITE_API_URL + '/api';
 
 export const AuthContext = createContext();
 

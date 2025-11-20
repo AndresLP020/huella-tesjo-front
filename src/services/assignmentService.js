@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL + '/assignments';
+const API_URL = import.meta.env.VITE_API_URL + '/api/assignments';
 
 // Configurar token de autorización
 const getAuthHeaders = () => {

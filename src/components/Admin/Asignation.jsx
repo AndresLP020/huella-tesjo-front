@@ -268,7 +268,7 @@ export default function Asignation({ open, onClose, users = [] }) {
 
             // Verificar que el token sea válido
             console.log('� Verificando estado de autenticación...');
-            const authCheckResponse = await fetch(`${import.meta.env.VITE_API_URL}/assignments/auth-status`, {
+            const authCheckResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/assignments/auth-status`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -316,14 +316,14 @@ export default function Asignation({ open, onClose, users = [] }) {
             }
 
             console.log('🚀 Enviando petición al servidor...');
-            console.log('URL:', `${import.meta.env.VITE_API_URL}/assignments`);
+            console.log('URL:', `${import.meta.env.VITE_API_URL}/api/assignments`);
             console.log('Token presente:', !!token);
             console.log('FormData entries:');
             for (let [key, value] of formData.entries()) {
                 console.log(`  ${key}:`, typeof value === 'object' && value instanceof File ? `File: ${value.name}` : value);
             }
             
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/assignments`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/assignments`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
