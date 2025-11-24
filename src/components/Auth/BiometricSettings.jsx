@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import WebAuthnService from '../../services/webauthnService';
-import WebAuthnDiagnostic from './WebAuthnDiagnostic';
+
 import {
   Box,
   Card,
@@ -112,12 +112,10 @@ const BiometricSettings = () => {
     }
   };
 
-  const REQUIRED_SAMPLES = 3; // Número de muestras requeridas
+  const REQUIRED_SAMPLES = 1; // Solo una muestra requerida
   const sampleSteps = [
-    'Primera muestra - Posición normal',
-    'Segunda muestra - Ángulo diferente', 
-    'Tercera muestra - Otra parte del dedo',
-    'Guardando en el servidor...'
+    'Coloca tu dedo en el sensor para registrar tu huella',
+    'Guardando credencial en el servidor...'
   ];
 
   const startBiometricRegistration = () => {
@@ -129,62 +127,28 @@ const BiometricSettings = () => {
   };
 
   const captureBiometricSample = async () => {
+      // Mensaje explícito de uso de Windows Hello
+      setSuccess('Se está utilizando el sistema biométrico de tu dispositivo (Windows Hello, Touch ID, Face ID, etc.). Si tienes configurada la huella, solo colócala una vez para registrar.');
     setCurrentSampleAttempting(true);
     setError('');
 
-    try {
-      // Solo capturar localmente las muestras biométricas, NO enviar al servidor aún
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge: new Uint8Array(32), // Challenge temporal para la captura local
-          rp: {
-            name: 'Sistema de Seguimiento de Docentes',
-            id: 'localhost'
-          },
-          user: {
-            id: new TextEncoder().encode('temp_user_id'),
-            name: 'temp@temp.com',
-            displayName: 'Temp User'
-          },
-          pubKeyCredParams: [
-            { alg: -7, type: 'public-key' },
-            { alg: -257, type: 'public-key' }
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required',
-            residentKey: 'preferred'
-          },
-          timeout: 60000
-        }
-      });
+    // Validar si hay autenticador biométrico físico disponible
+    const hasAuthenticator = await WebAuthnService.hasAvailableAuthenticator();
+    if (!hasAuthenticator) {
+      setError('No se detectó ningún sensor biométrico disponible en tu dispositivo. Configura Windows Hello, Touch ID, Face ID o un sensor compatible antes de continuar.');
+      setCurrentSampleAttempting(false);
+      return;
+    }
 
-      if (credential) {
-        // Agregar muestra exitosa (solo local)
-        const newSamples = [...registrationSamples, {
-          timestamp: Date.now(),
-          credentialId: credential.id,
-          sampleNumber: registrationSamples.length + 1
-        }];
-        setRegistrationSamples(newSamples);
-        
-        if (newSamples.length >= REQUIRED_SAMPLES) {
-          // Ahora SÍ registrar en el servidor usando la última captura exitosa
-          setRegistrationStep(REQUIRED_SAMPLES);
-          await registerFinalBiometric();
-        } else {
-          // Continuar con siguiente muestra
-          setRegistrationStep(newSamples.length);
-          setTimeout(() => {
-            setCurrentSampleAttempting(false);
-          }, 1000);
-        }
-      }
+    try {
+      // Registrar la credencial WebAuthn vinculada al usuario actual
+      setRegistrationStep(1);
+      await registerFinalBiometric();
     } catch (error) {
       if (error.name === 'NotAllowedError') {
         setError('Acceso biométrico denegado. Asegúrate de permitir el acceso al sensor.');
       } else {
-        setError(error.message || 'Error al capturar huella. Inténtalo de nuevo.');
+        setError(error.message || 'Error al registrar la huella. Inténtalo de nuevo.');
       }
       setCurrentSampleAttempting(false);
     }
@@ -785,11 +749,11 @@ const BiometricSettings = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Componente de diagnóstico WebAuthn */}
-      <WebAuthnDiagnostic 
+      {/* Componente de diagnóstico WebAuthn - Comentado temporalmente */}
+      {/* <WebAuthnDiagnostic 
         open={showDiagnostic} 
         onClose={() => setShowDiagnostic(false)} 
-      />
+      /> */}
     </Box>
   );
 };

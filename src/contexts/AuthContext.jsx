@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import setupAxiosInterceptors from '../utils/axiosDebugger';
 import WebAuthnService from '../services/webauthnService';
+import { FacialService } from '../services/facialService';
 
 export const AuthContext = createContext();
 
@@ -163,6 +164,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ===============================
+  // FUNCIONES DE RECONOCIMIENTO FACIAL
+  // ===============================
+
+  const loginWithFacial = async (email, descriptor) => {
+    try {
+      const result = await FacialService.loginWithFace(email, descriptor);
+      
+      if (result.success && result.token) {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        setCurrentUser(result.user);
+        setRetryCount(0);
+        return { success: true, user: result.user };
+      }
+      
+      throw new Error('Error en la autenticación facial');
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Error en la autenticación facial');
+    }
+  };
+
+  // ===============================
   // FUNCIONES DE WEBAUTHN/BIOMÉTRICO
   // ===============================
 
@@ -210,6 +233,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Verificar si el usuario tiene reconocimiento facial registrado
+  const userHasFacialRecognition = async (email) => {
+    try {
+      if (!email || !email.includes('@')) {
+        return false;
+      }
+      // Verificar directamente con el backend
+      const response = await axios.post('http://localhost:3001/api/auth/check-facial', { email });
+      return response.data.hasFacial || false;
+    } catch (error) {
+      // Si hay error (404 o cualquier otro), asumir que no tiene registro
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -222,6 +260,8 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         resetPassword,
         verifyToken, // Exponemos la función de verificación
+        // Funciones de reconocimiento facial
+        loginWithFacial,
         // Funciones WebAuthn/Biométricas
         loginWithBiometric,
         registerBiometricDevice,
@@ -229,7 +269,8 @@ export const AuthProvider = ({ children }) => {
         removeBiometricDevice,
         isBiometricSupported,
         checkBiometricAvailable,
-        userHasBiometricDevices
+        userHasBiometricDevices,
+        userHasFacialRecognition
       }}
     >
       {children}

@@ -1,0 +1,38 @@
+# Configuración de finales de línea para Git
+# Esto asegura que los archivos se manejen correctamente en todos los sistemas
+
+# Archivos de texto - normalizar a LF
+* text=auto
+
+# Scripts shell - mantener LF
+*.sh text eol=lf
+
+# Scripts batch de Windows - mantener CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Archivos binarios - no cambiar
+*.shard1 binary
+*.shard2 binary
+*.bin binary
+*.model binary
+
+# Archivos de imagen
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Archivos de fuente
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Archivos comprimidos
+*.zip binary
+*.tar binary
+*.gz binary
+

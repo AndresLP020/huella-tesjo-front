@@ -42,6 +42,7 @@ import {
   Save
 } from '@mui/icons-material';
 import { theme } from '../../theme/palette';
+import { FacialRegister } from './FacialAuth';
 
 // Componente de campo de entrada animado
 const AnimatedTextField = ({ label, type, value, onChange, icon, endAdornment, select, children, ...props }) => {

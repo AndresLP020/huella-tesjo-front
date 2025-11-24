@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Modelos de face-api.js (opcional - descomenta si no quieres subirlos a Git)
+# public/models/*.shard1
+# public/models/*.shard2
+# public/models/*.json

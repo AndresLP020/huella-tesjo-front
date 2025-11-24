@@ -25,11 +25,11 @@ import {
   Email,
   Lock,
   KeyboardArrowRight,
-  Fingerprint
+  Face
 } from '@mui/icons-material';
 import { theme } from '../../theme/palette';
 import ForgotPasswordLink from './ForgotPasswordLink';
-import { BiometricLoginDialog } from './BiometricLogin';
+import { FacialLoginDialog } from './FacialLogin';
 
 // Componente de campo de entrada animado
 const AnimatedTextField = ({ label, type, value, onChange, icon, endAdornment, ...props }) => {
@@ -91,9 +91,10 @@ export default function Login() {
   const [showBiometricDialog, setShowBiometricDialog] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [userHasBiometric, setUserHasBiometric] = useState(false);
+  const [userHasFacial, setUserHasFacial] = useState(false);
   
   // Obtenemos currentUser del contexto para verificar si ya hay una sesión activa
-  const { login, currentUser, isBiometricSupported, userHasBiometricDevices } = useContext(AuthContext);
+  const { login, loginWithFacial, currentUser, isBiometricSupported, userHasBiometricDevices, userHasFacialRecognition } = useContext(AuthContext);
   const navigate = useNavigate();
   
   // Redirigir si ya hay una sesión activa
@@ -108,24 +109,30 @@ export default function Login() {
     setBiometricSupported(isBiometricSupported());
   }, [isBiometricSupported]);
 
-  // Verificar si el usuario tiene dispositivos biométricos cuando ingresa email
+  // Verificar si el usuario tiene dispositivos biométricos o reconocimiento facial cuando ingresa email
   useEffect(() => {
     const checkUserBiometric = async () => {
       if (email && email.includes('@')) {
         try {
-          const hasBiometric = await userHasBiometricDevices(email);
+          const [hasBiometric, hasFacial] = await Promise.all([
+            userHasBiometricDevices(email),
+            userHasFacialRecognition(email)
+          ]);
           setUserHasBiometric(hasBiometric);
+          setUserHasFacial(hasFacial);
         } catch (error) {
           setUserHasBiometric(false);
+          setUserHasFacial(false);
         }
       } else {
         setUserHasBiometric(false);
+        setUserHasFacial(false);
       }
     };
 
     const timeoutId = setTimeout(checkUserBiometric, 500); // Debounce
     return () => clearTimeout(timeoutId);
-  }, [email, userHasBiometricDevices]);
+  }, [email, userHasBiometricDevices, userHasFacialRecognition]);
 
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -370,8 +377,8 @@ export default function Login() {
                 </Button>
               </Zoom>
 
-              {/* Opción de login biométrico */}
-              {biometricSupported && userHasBiometric && (
+              {/* Opción de login facial o biométrico */}
+              {(userHasFacial || (biometricSupported && userHasBiometric)) && (
                 <Fade in={true} style={{ transitionDelay: '800ms' }}>
                   <Box sx={{ mt: 2 }}>
                     <Divider sx={{ mb: 2 }}>
@@ -392,7 +399,7 @@ export default function Login() {
                       size="large"
                       onClick={handleBiometricLogin}
                       disabled={loading || success || !email || !email.includes('@')}
-                      startIcon={<Fingerprint />}
+                      startIcon={<Face />}
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
@@ -413,7 +420,7 @@ export default function Login() {
                         }
                       }}
                     >
-                      Acceso Biométrico
+                      {userHasFacial ? 'Iniciar Sesión con Rostro' : 'Acceso Biométrico'}
                     </Button>
                   </Box>
                 </Fade>
@@ -477,10 +484,18 @@ export default function Login() {
           </Paper>
         </Zoom>
 
-        {/* Dialog de login biométrico */}
-        <BiometricLoginDialog 
+        {/* Dialog de login facial */}
+        <FacialLoginDialog 
           open={showBiometricDialog}
           onClose={() => setShowBiometricDialog(false)}
+          onSuccess={(result) => {
+            if (result && result.user) {
+              setSuccess(true);
+              setTimeout(() => {
+                navigate('/', { replace: true });
+              }, 1000);
+            }
+          }}
           email={email}
         />
       </Container>

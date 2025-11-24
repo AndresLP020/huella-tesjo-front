@@ -117,7 +117,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!currentUser) return;
 
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3001');
+    const socket = io('http://localhost:3001');
     socket.emit('authenticate', currentUser._id);
 
     socket.on('notification', (notification) => {

@@ -1,409 +1,309 @@
-// Convierte base64url a base64 estándar
-function base64urlToBase64(str) {
-  str = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) str += '=';
-  return str;
-}
 import axios from 'axios';
-import { 
-  browserSupportsWebAuthn 
-} from '@simplewebauthn/browser';
+import { API_ENDPOINTS } from '../config/api.js';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
-export class WebAuthnService {
-  
+// Helper para obtener el token de autenticación
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Helper para obtener headers con autenticación
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const WebAuthnService = {
   /**
-   * Verificar si el navegador soporta WebAuthn
+   * Verifica si el navegador soporta WebAuthn
    */
-  static isSupported() {
-    return browserSupportsWebAuthn();
-  }
+  isSupported() {
+    return !!(window.PublicKeyCredential && navigator.credentials);
+  },
 
   /**
-   * Verificar si el dispositivo tiene capacidades biométricas
+   * Verifica si hay un autenticador disponible
    */
-  static async hasAvailableAuthenticator() {
-    try {
-      if (!browserSupportsWebAuthn()) {
-        return false;
-      }
-      
-      // Verificar si PublicKeyCredential está disponible
-      if (typeof PublicKeyCredential !== 'undefined' && 
-          PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      }
-      
+  async hasAvailableAuthenticator() {
+    if (!this.isSupported()) {
       return false;
+    }
+
+    try {
+      // Verificar si hay autenticadores disponibles
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      return available;
     } catch (error) {
       console.error('Error verificando autenticador:', error);
       return false;
     }
-  }
+  },
 
   /**
-   * Registrar un nuevo dispositivo biométrico
-   * @param {string} authenticatorType - 'platform' | 'cross-platform' | 'both'
+   * Registra un nuevo dispositivo biométrico
    */
-  static async registerDevice(authenticatorType = 'both') {
-    if (!this.isSupported()) {
-      throw new Error('Este navegador no soporta autenticación biométrica');
-    }
-
+  async registerDevice() {
     try {
-      // Paso 1: Obtener challenge del servidor
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Debes estar logueado para registrar un dispositivo biométrico');
+      if (!this.isSupported()) {
+        throw new Error('WebAuthn no está soportado en este navegador');
       }
 
-      console.log('🔑 Obteniendo opciones de registro...', `Tipo: ${authenticatorType}`);
-      const optionsResponse = await axios.post(`${API_BASE}/auth/biometric/registration-options`, {
-        authenticatorType
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      const { options } = optionsResponse.data;
-      console.log('✅ Opciones obtenidas para registro');
-
-      // Paso 2: Crear credencial biométrica usando SimpleWebAuthn
-      console.log('👆 Solicitando huella digital...');
-      
-      // Convertir datos base64 a Uint8Array para WebAuthn
-      const publicKeyOptions = {
-        ...options,
-        challenge: Uint8Array.from(atob(base64urlToBase64(options.challenge)), c => c.charCodeAt(0)),
-        user: {
-          ...options.user,
-          id: Uint8Array.from(atob(base64urlToBase64(options.user.id)), c => c.charCodeAt(0))
-        },
-        rp: {
-          id: options.rpID || 'localhost',
-          name: options.rpName || 'Sistema de Seguimiento de Docentes'
-        }
-      };
-
-      // Convertir excludeCredentials si existen  
-      if (options.excludeCredentials) {
-        publicKeyOptions.excludeCredentials = options.excludeCredentials.map(cred => ({
-          ...cred,
-          id: Uint8Array.from(atob(base64urlToBase64(cred.id)), c => c.charCodeAt(0))
-        }));
-      }
-      
-      const credential = await navigator.credentials.create({
-        publicKey: publicKeyOptions
-      });
-      
-      console.log('✅ Credencial creada:', credential);
-
-      // Paso 3: Enviar credencial al servidor
-      console.log('📤 Enviando credencial al servidor...');
-      console.log('🔑 Raw Credential ID:', credential.id);
-      console.log('🔑 Raw ID length:', credential.rawId.byteLength);
-      
-      // Convertir rawId a base64url para consistencia
-      const credentialIdBase64url = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-      
-      console.log('🔑 Credential ID base64url:', credentialIdBase64url);
-      
-      // Preparar datos para SimpleWebAuthn verificación
-      const registrationData = {
-        response: {
-          id: credential.id,
-          rawId: credentialIdBase64url,
-          response: {
-            attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
-            clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON)))
-          },
-          type: credential.type
-        }
-      };
-      
-      const verificationResponse = await axios.post(
-        `${API_BASE}/auth/biometric/register`,
-        registrationData,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // 1. Obtener opciones de registro del servidor
+      const optionsResponse = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_REGISTER_OPTIONS}`,
+        {},
+        { headers: getAuthHeaders() }
       );
 
-      if (!verificationResponse.data.success) {
-        throw new Error(verificationResponse.data.message || 'Error al verificar el registro');
-      }
+      const options = optionsResponse.data;
 
-      console.log('🎉 Dispositivo registrado exitosamente');
-      return {
-        success: true,
-        message: 'Dispositivo biométrico registrado exitosamente',
-        user: verificationResponse.data.user
+      // 2. Convertir challenge de base64 a ArrayBuffer
+      const publicKey = {
+        ...options.publicKey,
+        challenge: Uint8Array.from(atob(options.publicKey.challenge), c => c.charCodeAt(0)),
+        user: {
+          ...options.publicKey.user,
+          id: Uint8Array.from(atob(options.publicKey.user.id), c => c.charCodeAt(0))
+        }
       };
 
+      // 3. Crear la credencial
+      const credential = await navigator.credentials.create({
+        publicKey: publicKey
+      });
+
+      // 4. Convertir la respuesta a base64 para enviarla al servidor
+      const response = {
+        id: credential.id,
+        rawId: Array.from(new Uint8Array(credential.rawId))
+          .map(b => String.fromCharCode(b))
+          .join(''),
+        response: {
+          clientDataJSON: Array.from(new Uint8Array(credential.response.clientDataJSON))
+            .map(b => String.fromCharCode(b))
+            .join(''),
+          attestationObject: Array.from(new Uint8Array(credential.response.attestationObject))
+            .map(b => String.fromCharCode(b))
+            .join('')
+        },
+        type: credential.type
+      };
+
+      // 5. Enviar la credencial al servidor para verificación
+      const verifyResponse = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_REGISTER_VERIFY}`,
+        {
+          credential: {
+            id: btoa(response.id),
+            rawId: btoa(response.rawId),
+            response: {
+              clientDataJSON: btoa(response.response.clientDataJSON),
+              attestationObject: btoa(response.response.attestationObject)
+            },
+            type: response.type
+          }
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      return verifyResponse.data;
     } catch (error) {
-      console.error('❌ Error en registro biométrico:', error);
-      
-      // Manejar errores específicos de WebAuthn
-      if (error.name === 'NotAllowedError') {
-        throw new Error('Acceso denegado. Es posible que hayas cancelado la operación o el dispositivo esté bloqueado.');
-      } else if (error.name === 'NotSupportedError') {
-        throw new Error('Tu dispositivo no soporta este tipo de autenticación biométrica.');
-      } else if (error.name === 'SecurityError') {
-        throw new Error('Error de seguridad. Verifica que estés usando HTTPS en producción.');
-      } else if (error.name === 'InvalidStateError') {
-        throw new Error('Este dispositivo ya está registrado o hay un conflicto de estado.');
-      } else if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.message) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Error desconocido durante el registro biométrico');
-      }
+      console.error('Error registrando dispositivo:', error);
+      throw new Error(error.response?.data?.message || 'Error al registrar dispositivo biométrico');
     }
-  }
+  },
 
   /**
-   * Autenticarse con dispositivo biométrico (Login con email opcional)
+   * Autentica usando biométrico
    */
-  static async authenticateWithBiometric(userEmail = null) {
-    if (!this.isSupported()) {
-      throw new Error('Este navegador no soporta autenticación biométrica');
-    }
-
+  async authenticateWithBiometric() {
     try {
-      // Paso 1: Obtener challenge para login (específico del usuario si es posible)
-      console.log('🔑 Obteniendo challenge para autenticación...');
-      let challengeResponse;
-      
-      if (userEmail) {
-        // Si tenemos email, usar el endpoint específico del usuario
-        console.log('📧 Usando challenge específico para:', userEmail);
-        challengeResponse = await axios.post(`${API_BASE}/auth/biometric/login-challenge`, { email: userEmail });
-      } else {
-        // Fallback al endpoint general para compatibilidad
-        console.log('🌐 Usando challenge general (sin email específico)');
-        challengeResponse = await axios.post(`${API_BASE}/auth/biometric/quick-login`);
+      if (!this.isSupported()) {
+        throw new Error('WebAuthn no está soportado en este navegador');
       }
-      
-      const { challenge, timeout, allowCredentials } = challengeResponse.data;
-      console.log('✅ Challenge obtenido:', challenge);
 
-      // Paso 2: Solicitar autenticación biométrica al usuario
-      console.log('👆 Solicitando verificación biométrica...');
-      
-      // Preparar opciones de autenticación
-      const publicKeyOptions = {
-        challenge: Uint8Array.from(atob(base64urlToBase64(challenge)), c => c.charCodeAt(0)),
-        timeout: timeout || 60000,
-        userVerification: "required"
+      // 1. Obtener opciones de autenticación del servidor
+      const optionsResponse = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_LOGIN_OPTIONS}`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+
+      const options = optionsResponse.data;
+
+      // 2. Convertir challenge de base64 a ArrayBuffer
+      const publicKey = {
+        ...options.publicKey,
+        challenge: Uint8Array.from(atob(options.publicKey.challenge), c => c.charCodeAt(0)),
+        allowCredentials: options.publicKey.allowCredentials?.map(cred => ({
+          ...cred,
+          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0))
+        }))
       };
 
-      // Si tenemos credentials específicos del usuario, agregarlos
-      if (allowCredentials && allowCredentials.length > 0) {
-        console.log('🔐 Usando credenciales específicas del usuario:', allowCredentials.length);
-        publicKeyOptions.allowCredentials = allowCredentials.map(cred => ({
-          id: Uint8Array.from(atob(base64urlToBase64(cred.id)), c => c.charCodeAt(0)),
-          type: cred.type || 'public-key'
-        }));
-      }
-      
+      // 3. Obtener la credencial del usuario
       const assertion = await navigator.credentials.get({
-        publicKey: publicKeyOptions
+        publicKey: publicKey
       });
-      
-      console.log('✅ Assertion obtenida:', assertion);
 
-      // Paso 3: Enviar firma al servidor
-      console.log('📤 Verificando credencial...');
-      console.log('🔑 Assertion ID:', assertion.id);
-      console.log('🔑 Assertion rawId length:', assertion.rawId.byteLength);
-      
-      // Convertir rawId a base64url para consistencia
-      const credentialIdBase64url = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-      
-      console.log('🔑 Credential ID base64url para auth:', credentialIdBase64url);
-      
-      const authData = {
-        signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))),
-        credentialId: credentialIdBase64url, // Usar el formato base64url consistente
-        challenge: challenge,
-        authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))),
-        clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON)))
+      // 4. Convertir la respuesta a base64 para enviarla al servidor
+      const response = {
+        id: assertion.id,
+        rawId: Array.from(new Uint8Array(assertion.rawId))
+          .map(b => String.fromCharCode(b))
+          .join(''),
+        response: {
+          clientDataJSON: Array.from(new Uint8Array(assertion.response.clientDataJSON))
+            .map(b => String.fromCharCode(b))
+            .join(''),
+          authenticatorData: Array.from(new Uint8Array(assertion.response.authenticatorData))
+            .map(b => String.fromCharCode(b))
+            .join(''),
+          signature: Array.from(new Uint8Array(assertion.response.signature))
+            .map(b => String.fromCharCode(b))
+            .join(''),
+          userHandle: assertion.response.userHandle 
+            ? Array.from(new Uint8Array(assertion.response.userHandle))
+                .map(b => String.fromCharCode(b))
+                .join('')
+            : null
+        },
+        type: assertion.type
       };
-      
-      const authResponse = await axios.put(`${API_BASE}/auth/biometric/quick-login`, authData);
 
-      if (!authResponse.data.success) {
-        throw new Error(authResponse.data.message || 'Error al verificar la autenticación');
+      // 5. Verificar la autenticación con el servidor
+      const verifyResponse = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_LOGIN_VERIFY}`,
+        {
+          assertion: {
+            id: btoa(response.id),
+            rawId: btoa(response.rawId),
+            response: {
+              clientDataJSON: btoa(response.response.clientDataJSON),
+              authenticatorData: btoa(response.response.authenticatorData),
+              signature: btoa(response.response.signature),
+              userHandle: response.response.userHandle ? btoa(response.response.userHandle) : null
+            },
+            type: response.type
+          }
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      const result = verifyResponse.data;
+      
+      // Guardar token y usuario si la autenticación fue exitosa
+      if (result.success && result.token) {
+        localStorage.setItem('token', result.token);
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
       }
 
-      console.log('🎉 Autenticación biométrica exitosa');
-      
-      // Guardar token y usuario (igual que login normal)
-      const { token, user } = authResponse.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      return {
-        success: true,
-        message: authResponse.data.message || 'Autenticación biométrica exitosa',
-        token,
-        user,
-        authMethod: 'biometric'
-      };
-
+      return result;
     } catch (error) {
-      console.error('❌ Error en autenticación biométrica:', error);
-      
-      // Manejar errores específicos de WebAuthn
-      if (error.name === 'NotAllowedError') {
-        throw new Error('Acceso denegado. Es posible que hayas cancelado la operación.');
-      } else if (error.name === 'NotSupportedError') {
-        throw new Error('Tu dispositivo no soporta este tipo de autenticación biométrica.');
-      } else if (error.name === 'SecurityError') {
-        throw new Error('Error de seguridad. Verifica que estés usando HTTPS en producción.');
-      } else if (error.name === 'InvalidStateError') {
-        throw new Error('Estado inválido del autenticador.');
-      } else if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.message) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Error desconocido durante la autenticación biométrica');
-      }
+      console.error('Error en autenticación biométrica:', error);
+      throw new Error(error.response?.data?.message || 'Error en la autenticación biométrica');
     }
-  }
+  },
 
   /**
-   * Obtener estado de dispositivos biométricos
+   * Obtiene los dispositivos biométricos registrados
    */
-  static async getBiometricStatus() {
+  async getRegisteredDevices() {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No autenticado');
-      }
+      const response = await axios.get(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_STATUS}`,
+        { headers: getAuthHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo dispositivos:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener dispositivos registrados');
+    }
+  },
 
-      const response = await axios.get(`${API_BASE}/auth/biometric/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+  /**
+   * Obtiene el estado biométrico del usuario
+   */
+  async getBiometricStatus() {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_STATUS}`,
+        { headers: getAuthHeaders() }
+      );
       return response.data;
     } catch (error) {
       console.error('Error obteniendo estado biométrico:', error);
-      throw new Error(error.response?.data?.message || 'Error al obtener estado biométrico');
+      // Si el endpoint no existe (404), retornar estado por defecto
+      if (error.response?.status === 404) {
+        return { enabled: false, registeredAt: null, hasDevices: false };
+      }
+      // Si no hay estado, retornar estado por defecto
+      return { enabled: false, registeredAt: null, hasDevices: false };
     }
-  }
+  },
 
   /**
-   * Activar/Desactivar dispositivo biométrico
+   * Elimina un dispositivo biométrico
    */
-  static async toggleBiometric(enable) {
+  async removeDevice() {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No autenticado');
-      }
-
-      const response = await axios.post(`${API_BASE}/auth/biometric/toggle`, 
-        { enable },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await axios.delete(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_DELETE}`,
+        { headers: getAuthHeaders() }
       );
-
-      return {
-        success: true,
-        message: response.data.message,
-        enabled: response.data.enabled
-      };
-    } catch (error) {
-      console.error('Error cambiando estado biométrico:', error);
-      throw new Error(error.response?.data?.message || 'Error al cambiar estado biométrico');
-    }
-  }
-
-  /**
-   * Ejecutar diagnóstico de autenticadores
-   */
-  static async runDiagnostic() {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No autenticado');
-      }
-
-      const response = await axios.get(`${API_BASE}/auth/biometric/diagnostic`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
       return response.data;
-    } catch (error) {
-      console.error('Error en diagnóstico:', error);
-      throw new Error(error.response?.data?.message || 'Error en diagnóstico');
-    }
-  }
-
-  /**
-   * Eliminar dispositivo biométrico PERMANENTEMENTE
-   */
-  static async deleteBiometric() {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No autenticado');
-      }
-
-      const response = await axios.delete(`${API_BASE}/auth/biometric/delete`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      return {
-        success: true,
-        message: response.data.message || 'Dispositivo eliminado permanentemente'
-      };
     } catch (error) {
       console.error('Error eliminando dispositivo:', error);
       throw new Error(error.response?.data?.message || 'Error al eliminar dispositivo');
     }
-  }
+  },
 
   /**
-   * Verificar si un usuario tiene dispositivos biométricos registrados
+   * Elimina la configuración biométrica
    */
-  static async userHasBiometricDevices(email) {
-    try {
-      // Usar la ruta de verificación de usuario existente o crear una nueva
-      const response = await axios.post(`${API_BASE}/auth/biometric/check-user-devices`, {
-        email
-      });
+  async deleteBiometric() {
+    return this.removeDevice();
+  },
 
-      console.log('🔍 Verificación dispositivos biométricos:', response.data);
-      return response.data.success && !!response.data.hasDevices;
+  /**
+   * Activa o desactiva la autenticación biométrica
+   */
+  async toggleBiometric(enable) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.BIOMETRIC_TOGGLE}`,
+        { enabled: enable },
+        { headers: getAuthHeaders() }
+      );
+      return response.data;
     } catch (error) {
-      console.error('❌ Error verificando dispositivos biométricos:', error);
+      console.error('Error cambiando estado biométrico:', error);
+      throw new Error(error.response?.data?.message || 'Error al cambiar estado biométrico');
+    }
+  },
+
+  /**
+   * Verifica si un usuario tiene dispositivos biométricos registrados
+   */
+  async userHasBiometricDevices(email) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/biometric/check-user-devices`,
+        { email },
+        { headers: getAuthHeaders() }
+      );
+      return response.data.hasDevices || false;
+    } catch (error) {
+      console.error('Error verificando dispositivos del usuario:', error);
       return false;
     }
   }
-
-  /**
-   * Método con email para compatibilidad (utiliza quick-login internamente)
-   */
-  static async authenticateWithBiometricEmail() {
-    return this.authenticateWithBiometric();
-  }
-
-  // Métodos de compatibilidad con la implementación anterior
-  static async getRegisteredDevices() {
-    return this.getBiometricStatus();
-  }
-
-  static async removeDevice() {
-    return this.deleteBiometric();
-  }
-}
+};
 
 export default WebAuthnService;

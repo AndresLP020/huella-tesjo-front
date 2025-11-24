@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import BiometricSettings from '../Auth/BiometricSettings';
+import { FacialRegister } from '../Auth/FacialRegister';
 import {
   Container,
   Paper,
@@ -23,7 +24,8 @@ import {
   Security,
   Settings,
   ArrowBack,
-  Fingerprint
+  Fingerprint,
+  Face
 } from '@mui/icons-material';
 
 const TabPanel = ({ children, value, index, ...other }) => (
@@ -236,8 +238,22 @@ const ProfileSettings = () => {
 
             {/* Panel de Autenticación Biométrica */}
             <TabPanel value={activeTab} index={1}>
-              <Box sx={{ p: 3 }}>
-                <BiometricSettings />
+              <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Face />
+                    Reconocimiento Facial
+                  </Typography>
+                  <FacialRegister />
+                </Box>
+                <Divider />
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Fingerprint />
+                    Autenticación Biométrica (WebAuthn)
+                  </Typography>
+                  <BiometricSettings />
+                </Box>
               </Box>
             </TabPanel>
 
