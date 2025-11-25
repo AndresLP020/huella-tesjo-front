@@ -1,7 +1,7 @@
 // Configuración de API para desarrollo y producción
 const API_CONFIG = {
   // URL base de la API
-  baseURL: 'http://localhost:3001/api', // Siempre usar backend local en desarrollo
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
   
   // Timeout para requests
   timeout: 30000,
