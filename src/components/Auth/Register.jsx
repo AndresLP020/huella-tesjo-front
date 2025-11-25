@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
-import API_CONFIG from '../../config/api';
 import {
   TextField,
   Button,
@@ -130,7 +129,7 @@ export default function Register() {
     const fetchCarreras = async () => {
       setIsLoadingCarreras(true);
       try {
-        const response = await fetch(`${API_CONFIG.baseURL}/carreras`);
+        const response = await fetch('http://localhost:3001/api/carreras');
         if (!response.ok) {
           throw new Error('Error al cargar carreras');
         }
@@ -406,8 +405,8 @@ export default function Register() {
                 <MenuItem disabled>Cargando carreras...</MenuItem>
               ) : (
                 carreras
-                  .filter(carrera => carrera.nombre.toLowerCase().includes('sistemas'))
-                  .map((carrera) => (
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                    .map((carrera) => (
                     <MenuItem key={carrera._id} value={carrera._id}>
                       {carrera.nombre}
                     </MenuItem>
