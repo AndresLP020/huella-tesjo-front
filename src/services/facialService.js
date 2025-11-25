@@ -1,7 +1,8 @@
 import axios from 'axios';
+import API_CONFIG from '../config/api';
 
-const API_BASE = 'http://localhost:3001/api';
-const FACIAL_BASE = `${API_BASE}/facial`;
+const FACIAL_BASE = `${API_CONFIG.baseURL}/facial`;
+const AUTH_BASE = `${API_CONFIG.baseURL}/auth`;
 
 export const FacialService = {
   async registerDescriptor(descriptor, token) {
@@ -16,7 +17,7 @@ export const FacialService = {
   },
   // Login facial sin necesidad de token previo
   async loginWithFace(email, descriptor) {
-    const response = await axios.post(`${API_BASE}/auth/login-facial`, {
+    const response = await axios.post(`${AUTH_BASE}/login-facial`, {
       email,
       descriptor: Array.from(descriptor) // Asegurar que es un array
     });

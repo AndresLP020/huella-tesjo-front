@@ -3,6 +3,7 @@ import axios from 'axios';
 import setupAxiosInterceptors from '../utils/axiosDebugger';
 import WebAuthnService from '../services/webauthnService';
 import { FacialService } from '../services/facialService';
+import API_CONFIG from '../config/api';
 
 export const AuthContext = createContext();
 
@@ -18,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', {
+      const response = await axios.post(`${API_CONFIG.baseURL}/auth/login`, {
         email,
         password
       });
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', userData, {
+      const response = await axios.post(`${API_CONFIG.baseURL}/auth/register`, userData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         }
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
-      const response = await axios.get('http://localhost:3001/api/auth/verify', {
+      const response = await axios.get(`${API_CONFIG.baseURL}/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal
       });
@@ -134,7 +135,7 @@ export const AuthProvider = ({ children }) => {
 
   const forgotPassword = async (email) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/forgot-password', {
+      const response = await axios.post(`${API_CONFIG.baseURL}/auth/forgot-password`, {
         email
       });
       
@@ -149,7 +150,7 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (token, newPassword) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/reset-password', {
+      const response = await axios.post(`${API_CONFIG.baseURL}/auth/reset-password`, {
         token,
         newPassword
       });
@@ -240,7 +241,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
       // Verificar directamente con el backend
-      const response = await axios.post('http://localhost:3001/api/auth/check-facial', { email });
+      const response = await axios.post(`${API_CONFIG.baseURL}/auth/check-facial`, { email });
       return response.data.hasFacial || false;
     } catch (error) {
       // Si hay error (404 o cualquier otro), asumir que no tiene registro
